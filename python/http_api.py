@@ -1,6 +1,4 @@
-# http_api.py
-# This file creates a Flask web server and acts as a thin interface
-# to a central ChatManager that handles all chat logic.
+# Flask API for chat management
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS # Ensure CORS is imported if you need it
@@ -8,23 +6,19 @@ import uuid
 import logging
 
 from chat_manager import ChatManager
-from models.langchain import get_global_base_app, get_global_rag_app
+from models.langchain import get_global_app, set_global_app
 from models.model_parameters import ModelParameters # Keep for potential model selection logic in http_api
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 app = Flask(__name__)
-CORS(app) # Enable CORS for all routes if frontend is on different origin
+CORS(app)  # Frontend compatibility
 
-# Initialize ChatManager once globally. It now manages interactions with global LangGraph apps.
+# Global chat manager
 chat_manager = ChatManager()
 
-# Initialize the global base and RAG LangGraph apps when the Flask app starts
-# This ensures the LLMs are loaded once and cached.
-# We can lazily load them via the getters, but forcing load here ensures readiness.
-# For now, let's rely on the lazy loading in get_global_base_app/get_global_rag_app to avoid startup delays
-# if the models are very large.
+# Lazy load LLM on first request
 
 @app.route('/')
 def home():
@@ -33,21 +27,27 @@ def home():
 @app.route('/create_chat', methods=['POST'])
 def create_chat():
     data = request.json
-    model_parameters_dict = data.get('modelParameters')  # Dict passed straight through
+    model_parameters_dict = data.get('modelParameters', {})  # Dict passed straight through
+    
+    logging.info(f"Creating chat with model parameters: {model_parameters_dict}")
+    
+    # Ensure we have the required parameters
+    if not model_parameters_dict.get('hf_params'):
+        model_parameters_dict['hf_params'] = {}
+    
+    # Ensure hf_params exists
+    if 'hf_params' not in model_parameters_dict:
+        model_parameters_dict['hf_params'] = {}
+    
+    # Set default model parameters if not provided
+    if 'model_name' not in model_parameters_dict['hf_params']:
+        model_parameters_dict['hf_params']['model_name'] = 'meta-llama/Llama-3.1-8B-Instruct'
+    
+    # Ensure use_kv_cache is set
+    model_parameters_dict['hf_params'].setdefault('use_kv_cache', True)
 
-    # The ChatManager's create_chat now just logs and prepares, LangGraph handles actual chat creation
     try:
-        # Determine which global app to use for this chat based on model_parameters_dict
-        # For now, we will default to the base app if no specific model parameters are given.
-        # Future: Expand this logic to select between base_app and rag_app based on model_parameters_dict["model_version"]
-        # For example:
-        # if model_parameters_dict and model_parameters_dict.get("model_version") == "RAG":
-        #     current_global_app = get_global_rag_app(ModelParameters(**model_parameters_dict))
-        # else:
-        #     current_global_app = get_global_base_app(ModelParameters(**model_parameters_dict))
-        
-        # For now, we'll let chat_manager handle which global app it uses for the actual chat.
-        # This endpoint just confirms the chat is ready.
+        # Pass the processed parameters to the chat manager
         chat_id, message = chat_manager.create_chat(model_parameters_dict)
         return jsonify({"status": "success", "chatId": chat_id, "message": message}), 200
     except ValueError as e:
@@ -59,7 +59,7 @@ def create_chat():
 
 @app.route('/change_model', methods=['POST'])
 def change_model():
-    """Switch the global LangGraph model (Base or RAG) at runtime."""
+    """Change the active model at runtime."""
     data = request.json or {}
     model_parameters_dict = data.get('modelParameters')
 
@@ -83,27 +83,16 @@ def change_model():
 
 @app.route('/chat', methods=['POST'])
 def chat_message():
-    """Handle a chat message with optional file attachments.
+    """Process chat message with optional files.
     
-    Request JSON format:
-    {
-        "chatId": "unique-chat-id",
-        "message": "user's message text",
-        "files": [
-            {
-                "name": "filename.txt",
-                "content": "file content as string"
-            },
-            ...
-        ],
-        "modelParameters": { ... }  # Optional
-    }
-    
-    Response:
-    {
-        "status": "success",
-        "response": "AI's response text"
-    }
+    Args:
+        chatId: Unique chat identifier
+        message: User's message text
+        files: Optional list of file objects with name/content
+        modelParameters: Optional model configuration
+        
+    Returns:
+        JSON with status and response
     """
     data = request.json or {}
     chat_id = data.get('chatId')

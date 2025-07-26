@@ -194,6 +194,9 @@ def main():
         print("/exit, /quit  - Exit the chat")
         print("===================")
 
+    # Store initial file for first message
+    initial_file = args.file
+
     # Main chat loop
     while True:
         try:
@@ -222,8 +225,13 @@ def main():
                 print(f"Using KV Cache: {model_parameters['hf_params']['use_kv_cache']}")
                 continue
                 
-            # Handle file upload
-            if user_input.lower().startswith('/file '):
+            # Handle file upload or initial file
+            if initial_file:
+                # This is the first message - include the initial file
+                print(f"\n--> Including initial file: {initial_file}")
+                response = chat(args.base_url, chat_id, user_input, [initial_file])
+                initial_file = None  # Clear the initial file so we don't send it again
+            elif user_input.lower().startswith('/file '):
                 try:
                     file_paths = user_input[6:].split()
                     valid_files = []
