@@ -1,5 +1,4 @@
-# models/langchain.py
-# This file contains the stateful, KV-caching chat implementation.
+# LangChain implementation with KV-caching and RAG support
 
 import logging
 from typing import Any, Optional, List, Dict, Sequence, Union, Tuple
@@ -21,41 +20,45 @@ from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 from typing_extensions import TypedDict, Annotated
 
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from models.custom_huggingface_llm import CustomHuggingFaceLLM
 from models.model_parameters import ModelParameters, HuggingFaceParameters
 from models.model_cache import GLOBAL_HF_MODEL_CACHE
 
-# Configure logging for this module
+# Basic logging setup
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Define LangGraph State
+# LangGraph state definition
 class ChatState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], "add_messages"]
-    file_contents: Annotated[List[str], "append_file_content"]
+    file_contents: Annotated[List[Dict[str, str]], "append_file_content"]
     rag_enabled: bool
 
-# Helper function to append file content to state (for LangGraph Annotated)
-def append_file_content(current: List[str], new: List[str]) -> List[str]:
+# Append file content to state
+def append_file_content(current: List[Dict[str, str]], new: List[Dict[str, str]]) -> List[Dict[str, str]]:
     if current is None:
         current = []
     return current + new
 
-# Allowed model names for HuggingFace backend
+
+
+# Supported HuggingFace models
+# TODO: Move to config
 ALLOWED_HUGGINGFACE_MODELS = {
     "meta-llama/Llama-3.1-8B-Instruct",
     "meta-llama/Llama-3.2-1B-Instruct",
     "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
 }
 
-# --- Global LangGraph App Instances ---
+# Global app instances
 _global_base_app = None
 _global_rag_app = None
 
 class LangChainBase:
-    """A base LangChain implementation using LangGraph for state management and a custom LLM."""
+    """Base LangChain implementation with LangGraph state management."""
     
     def __init__(self, model_params: ModelParameters, **kwargs):
-        # Decentralized Validation for LangChainBase
+        # Validate model parameters
         framework_type = model_params["framework_type"]
         backend = model_params["backend"]
         model_version = model_params["model_version"]
@@ -150,167 +153,131 @@ class LangChainBase:
     def _call_model_node(self, state: ChatState) -> Dict[str, Any]:
         """Generate a response for the Base chat model.
 
-        – Guarantees the "helpful chatbot" system prompt exists exactly once per
-          thread.
-        – Injects any uploaded file contents as extra context (base-only).
+        - Processes messages while preserving their order and type
+        - Maintains system messages and file context
+        - Uses LangGraph's MemorySaver for conversation history
         """
-        # Make a working copy so we do not mutate the original list inside state
-        prompt_messages: List[BaseMessage] = list(state["messages"])
-        new_state_messages: List[BaseMessage] = []
-
-        # 1. Add the system prompt once
-        if not any(isinstance(m, SystemMessage) for m in prompt_messages):
-            sys_msg = SystemMessage(content="You are a helpful and friendly chatbot.")
-            prompt_messages.insert(0, sys_msg)
-            new_state_messages.append(sys_msg)  # persist system msg in thread state
-
-        # 2. If the caller supplied file content, create structured context
+        # Get messages and file contents from state
+        messages = state["messages"]
         file_contents = state.get("file_contents", [])
+        
+        # Debug logging
+        logging.info(f"_call_model_node - Incoming state: messages={len(messages)}, files={len(file_contents)}")
         if file_contents:
-            # Create a file index with metadata
-            file_index = []
-            for idx, file_info in enumerate(file_contents, 1):
-                name = file_info.get('name', f'unnamed_file_{idx}')
-                file_type = self._get_file_type(name)
-                file_index.append(f"{idx}. {name} (Type: {file_type})")
+            for i, f in enumerate(file_contents, 1):
+                logging.info(f"  File {i}: {f.get('name', 'unnamed')} ({len(f.get('content', ''))} chars)")
+        
+        # Debug message logging
+        logging.info("Incoming messages:")
+        for i, msg in enumerate(messages):
+            content_preview = str(msg.content)[:100] + ("..." if len(str(msg.content)) > 100 else "")
+            logging.info(f"  {i+1}. {type(msg).__name__}: {content_preview}")
+        
+        # Keep existing message formatting
+        processed_messages = list(messages)
+        
+        logging.info(f"Final prompt has {len(processed_messages)} messages")
+        
+        # Generate response
+        try:
+            if self.use_kv_cache:
+                prompt_string = self.llm.tokenizer.apply_chat_template(
+                    processed_messages, add_generation_prompt=True, tokenize=False
+                )
+                response_text = self.llm.invoke(prompt_string)
+            else:
+                response = self.llm.invoke(processed_messages)
+                response_text = response.content if hasattr(response, 'content') else str(response)
             
-            # Create structured file sections with clear delimiters
-            file_sections = [
-                "## Available Files",
-                "You can reference these files by their number (#1, #2, etc.) or name.",
-                "Example: 'What does #1 say about X?' or 'Compare #2 and #3'",
-                "\n".join(file_index),
-                "",
-                "### File Contents:"
-            ]
+            # Clean response
+            cleaned_response = self._strip_special_tokens(response_text)
             
-            # Add each file's content with clear headers
-            for idx, file_info in enumerate(file_contents, 1):
-                name = file_info.get('name', f'unnamed_file_{idx}')
-                content = file_info.get('content', '').strip()
-                if not content:
-                    continue
-                    
-                file_sections.extend([
-                    f"\n### File {idx}: {name}",
-                    "```" + self._get_file_extension(name),
-                    content,
-                    "```"
-                ])
+            # The MemorySaver will handle adding this to the conversation history
+            return {
+                "messages": [AIMessage(content=cleaned_response)],
+                "file_contents": file_contents
+            }
             
-            # Only add file context if we have content
-            if len(file_sections) > 6:  # More than just the headers
-                ctx_msg = SystemMessage(content="\n".join(file_sections))
-                
-                # Remove any existing file context messages
-                prompt_messages = [
-                    m for m in prompt_messages 
-                    if not (isinstance(m, SystemMessage) and 
-                          m.content.startswith("## Available Files"))
-                ]
-                
-                # Insert the new file context after the system message
-                insert_pos = 1 if (prompt_messages and 
-                                isinstance(prompt_messages[0], SystemMessage) and 
-                                not prompt_messages[0].content.startswith("## Available Files")) else 0
-                prompt_messages.insert(insert_pos, ctx_msg)
-                
-                # Update state with the new file context
-                new_state_messages = [m for m in new_state_messages 
-                                   if not (isinstance(m, SystemMessage) and 
-                                         m.content.startswith("## Available Files"))]
-                if new_state_messages:
-                    new_state_messages.insert(0, ctx_msg)
-                else:
-                    new_state_messages.append(ctx_msg)
-
-        # 3. Invoke the underlying LLM
-        if self.use_kv_cache:
-            prompt_string = self.llm.tokenizer.apply_chat_template(
-                prompt_messages, add_generation_prompt=True, tokenize=False
-            )
-            response_text = self.llm.invoke(prompt_string)
-        else:
-            response_text = self.llm.invoke(prompt_messages).content
-
-        # 4. Clean up any special tokens (e.g., Llama chat template tags)
-        cleaned_response = self._strip_special_tokens(response_text)
-
-        new_state_messages.append(AIMessage(content=cleaned_response))
-        return {"messages": new_state_messages}
+        except Exception as e:
+            logging.error(f"Error in _call_model_node: {str(e)}")
+            error_msg = f"I encountered an error processing your request: {str(e)}"
+            return {
+                "messages": [AIMessage(content=error_msg)]
+            }
 
     @staticmethod
-    def _get_file_type(filename: str) -> str:
-        """Determine file type based on extension"""
-        ext = filename.split('.')[-1].lower()
-        file_types = {
-            'py': 'Python',
-            'js': 'JavaScript',
-            'json': 'JSON',
-            'csv': 'CSV',
-            'md': 'Markdown',
-            'txt': 'Text',
-            'html': 'HTML',
-            'css': 'CSS',
-            'java': 'Java',
-            'c': 'C',
-            'cpp': 'C++',
-            'h': 'Header',
-            'hpp': 'C++ Header',
-            'go': 'Go',
-            'rs': 'Rust',
-            'rb': 'Ruby',
-            'php': 'PHP',
-            'ts': 'TypeScript',
-            'tsx': 'TypeScript React',
-            'jsx': 'JavaScript React',
-            'sh': 'Shell Script',
-            'bat': 'Batch',
-            'ps1': 'PowerShell',
-            'sql': 'SQL',
-            'yaml': 'YAML',
-            'yml': 'YAML',
-            'xml': 'XML'
-        }
-        return file_types.get(ext, 'Text')
+    def _get_file_type(filename: str):
+        """Get file type from extension"""
+        if not filename:
+            return "unknown"
+        if "." in filename:
+            ext = filename.split(".")[-1].lower()
+            if ext in ["py"]:
+                return "python"
+            elif ext in ["js", "jsx", "ts", "tsx"]:
+                return "javascript"
+            elif ext in ["html", "htm"]:
+                return "html"
+            elif ext in ["css"]:
+                return "css"
+            elif ext in ["json"]:
+                return "json"
+            elif ext in ["md"]:
+                return "markdown"
+            elif ext in ["txt"]:
+                return "text"
+            elif ext in ["csv"]:
+                return "csv"
+            elif ext in ["xml"]:
+                return "xml"
+            elif ext in ["yaml", "yml"]:
+                return "yaml"
+        return "text"
 
-    @staticmethod
-    def _get_file_extension(filename: str) -> str:
-        """Get the file extension for syntax highlighting"""
-        ext = filename.split('.')[-1].lower()
-        # Common syntax highlighting modes in markdown
-        highlight_modes = {
-            'py': 'python',
-            'js': 'javascript',
-            'jsx': 'jsx',
-            'ts': 'typescript',
-            'tsx': 'tsx',
-            'json': 'json',
-            'html': 'html',
-            'css': 'css',
-            'java': 'java',
-            'c': 'c',
-            'cpp': 'cpp',
-            'h': 'c',
-            'hpp': 'cpp',
-            'go': 'go',
-            'rs': 'rust',
-            'rb': 'ruby',
-            'php': 'php',
-            'sh': 'bash',
-            'bat': 'batch',
-            'ps1': 'powershell',
-            'sql': 'sql',
-            'yaml': 'yaml',
-            'yml': 'yaml',
-            'xml': 'xml',
-            'md': 'markdown'
-        }
-        return highlight_modes.get(ext, '')
+    def _get_file_extension(self, filename: str) -> str:
+        """Get the file extension for syntax highlighting."""
+        if not filename or not isinstance(filename, str):
+            return ""
+        
+        # Get the file extension
+        if "." in filename:
+            ext = filename.split(".")[-1].lower()
+            # File extension mapping
+            extension_map = {
+                'py': 'python',
+                'js': 'javascript',
+                'jsx': 'jsx',
+                'ts': 'typescript',
+                'tsx': 'tsx',
+                'html': 'html',
+                'css': 'css',
+                'json': 'json',
+                'md': 'markdown',
+                'txt': 'text',
+                'csv': 'csv',
+                'xml': 'xml',
+                'yaml': 'yaml',
+                'yml': 'yaml',
+                'java': 'java',
+                'c': 'c',
+                'cpp': 'cpp',
+                'h': 'c',
+                'hpp': 'cpp',
+                'go': 'go',
+                'rs': 'rust',
+                'rb': 'ruby',
+                'php': 'php',
+                'sh': 'bash',
+                'bat': 'batch',
+                'ps1': 'powershell',
+                'sql': 'sql'
+            }
+            return extension_map.get(ext, '')
+        return ''
 
     @staticmethod
     def _strip_special_tokens(text: str) -> str:
-        """Remove Llama chat template tags like <|...|>."""
+        """Clean Llama template tags"""
         import re
         # Keep content after final assistant tag if present
         if "<|assistant" in text or "assistant<|end_header_id|>" in text:
@@ -321,7 +288,7 @@ class LangChainBase:
         return text.strip()
 
 class LangChainRAG(LangChainBase):
-    """A LangChain implementation with Retrieval Augmented Generation (RAG) using LangGraph."""
+    """LangChain with RAG support using LangGraph."""
 
     def __init__(self, model_params: ModelParameters, **kwargs):
         super().__init__(model_params=model_params, **kwargs)
@@ -332,63 +299,153 @@ class LangChainRAG(LangChainBase):
         
         self.embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
         self.vectorstore = FAISS.from_texts([""], self.embeddings) 
-        self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        self.text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000, 
+            chunk_overlap=200,
+            length_function=len,
+            is_separator_regex=False
+        )
 
+        # Prompt templates
         self.history_aware_retriever_prompt = ChatPromptTemplate.from_messages([
             MessagesPlaceholder(variable_name="messages"),
             ("user", "{input}"),
-            ("user", "Given the above conversation, generate a search query to look up in order to get information relevant to the conversation")
+            ("user", "Given the conversation history and latest message, generate a search query that would help find relevant information. Focus on key entities, concepts, and the main question or topic.")
         ])
         
         self.document_chain_prompt = ChatPromptTemplate.from_messages([
-            ("system", "Answer the user's questions based on the below context:\n\n{context}"),
+            ("system", """You are a helpful AI assistant that answers questions based on the provided context. 
+            
+            Context:
+            {context}
+            
+            Sources:
+            {sources_list}
+            
+            Guidelines:
+            1. Base your response ONLY on the provided context
+            2. If the context is insufficient, say you don't have enough information
+            3. Be concise and to the point
+            4. When relevant, cite sources using [1], [2], etc."""),
             MessagesPlaceholder(variable_name="messages"), 
             ("user", "{input}"),
         ])
+        
+        # Track processed files
+        self.processed_files = set()
 
     def _add_documents_node(self, state: ChatState) -> Dict[str, Any]:
-        if state["file_contents"]:
-            logging.info("Adding {} new file(s) to retriever.".format(len(state['file_contents'])))
+        """Process and add file contents to the vector store."""
+        if not state.get("file_contents"):
+            logging.info("No file contents to process in _add_documents_node")
+            return {"rag_enabled": False}
             
-            # Process each file individually to maintain source metadata
-            all_docs = []
-            for file_info in state["file_contents"]:
-                name = file_info.get('name', 'unnamed_file')
-                content = file_info.get('content', '')
+        logging.info(f"Processing {len(state['file_contents'])} files in _add_documents_node")
+        
+        # Process files with metadata
+        all_docs = []
+        processed_files = 0
+        
+        for file_info in state["file_contents"]:
+            name = file_info.get('name', f'unnamed_{len(self.processed_files)}')
+            content = file_info.get('content', '')
+            
+            # Skip processed files
+            if not content.strip() or name in self.processed_files:
+                logging.debug(f"Skipping file (empty or already processed): {name}")
+                continue
                 
-                # Skip empty files
-                if not content.strip():
-                    continue
-                
-                # Split the content into chunks
-                texts = self.text_splitter.split_text(content)
+            logging.info(f"Processing file: {name} (size: {len(content)} chars)")
+            
+            try:
+                # Chunk content
+                chunks = self.text_splitter.split_text(content)
                 
                 # Create documents with metadata
-                for i, text in enumerate(texts):
+                for i, chunk in enumerate(chunks):
                     doc = Document(
-                        page_content=text,
+                        page_content=chunk,
                         metadata={
-                            "source": name,
-                            "chunk": i,
-                            "total_chunks": len(texts),
-                            "file_type": self._get_file_type(name)
+                            'source': name,
+                            'chunk': i,
+                            'total_chunks': len(chunks),
+                            'file_type': name.split('.')[-1] if '.' in name else 'txt',
+                            'chunk_size': len(chunk),
+                            'timestamp': datetime.datetime.utcnow().isoformat()
                         }
                     )
                     all_docs.append(doc)
-            
-            # Add to vector store
-            if all_docs:
+                
+                processed_files += 1
+                logging.info(f"Created {len(chunks)} chunks from {name}")
+                
+            except Exception as e:
+                logging.error(f"Error processing file {name}: {str(e)}")
+                continue
+        
+        # Update vector store
+        if all_docs:
+            try:
                 if self.vectorstore is None:
                     self.vectorstore = FAISS.from_documents(all_docs, self.embeddings)
+                    logging.info(f"Created new vector store with {len(all_docs)} chunks")
                 else:
+                    current_count = self.vectorstore.index.ntotal if hasattr(self.vectorstore, 'index') else 0
                     self.vectorstore.add_documents(all_docs)
+                    logging.info(f"Added {len(all_docs)} chunks to vector store (total: {current_count + len(all_docs)})")
                 
-                logging.info(f"Successfully added {len(all_docs)} document chunks from {len(state['file_contents'])} files to vector store.")
-                return {"rag_enabled": True, "files_processed": len(state['file_contents'])}
-            
-        return {"rag_enabled": False}
+                return {
+                    "rag_enabled": True,
+                    "files_processed": processed_files,
+                    "chunks_processed": len(all_docs)
+                }
+                
+            except Exception as e:
+                logging.error(f"Error updating vector store: {str(e)}")
+                return {
+                    "rag_enabled": False,
+                    "error": f"Failed to update vector store: {str(e)}"
+                }
+        
+        return {
+            "rag_enabled": False,
+            "message": "No new documents were processed"
+        }
 
+    def _route_after_adding_documents(self, state: ChatState) -> str:
+        """Determine the next step after adding documents."""
+        if not state.get("file_contents"):
+            logging.info("No files to process, using base chat model")
+            return "base_chat"
+            
+        # Check for new files
+        new_files = [
+            f for f in state["file_contents"] 
+            if f.get('name') not in self.processed_files
+        ]
+        
+        if new_files:
+            logging.info(f"Processing {len(new_files)} new files")
+            for file_info in new_files:
+                if 'name' in file_info:
+                    self.processed_files.add(file_info['name'])
+            return "retrieve"
+            
+        logging.info("No new files to process, using base chat model")
+        return "base_chat"
+        
+    def _route_after_generation(self, state: ChatState) -> str:
+        """Determine next step after generating a response."""
+        # End of generation
+        return END
+        
+    def _route_after_base_chat(self, state: ChatState) -> str:
+        """Determine next step after base chat processing."""
+        # End of base chat
+        return END
+        
     def _route_to_rag_or_base(self, state: ChatState) -> str:
+        """Backward compatibility"""
         if state.get("rag_enabled", False) and self.vectorstore.index.ntotal > 0:
             logging.info("Routing to RAG path.")
             return "retrieve"
@@ -416,18 +473,18 @@ class LangChainRAG(LangChainBase):
         question = state["messages"][-1].content
         chat_history = state["messages"][:-1]
 
-        # Enhance the context with source information
+        # Add source info to context
         enhanced_context = []
         source_map = {}
         
-        # Group chunks by source file
+        # Group by source
         for doc in context_docs:
             source = doc.metadata.get('source', 'unknown')
             if source not in source_map:
                 source_map[source] = []
             source_map[source].append(doc)
         
-        # Create a structured context with source information
+        # Structure context
         for source, docs in source_map.items():
             file_type = docs[0].metadata.get('file_type', 'document')
             enhanced_context.append(f"## Source: {source} (Type: {file_type})")
@@ -436,7 +493,7 @@ class LangChainRAG(LangChainBase):
                 enhanced_context.append(doc.page_content)
                 enhanced_context.append("\n---\n")
         
-        # Create a more informative prompt
+        # Build prompt
         prompt = ChatPromptTemplate.from_messages([
             ("system", """You are a helpful assistant that answers questions based on the provided context.
             The context comes from the following sources:
@@ -454,7 +511,7 @@ class LangChainRAG(LangChainBase):
             ("user", "{input}")
         ])
         
-        # Format the sources list for the prompt
+        # Format sources
         sources_list = "\n".join([f"- {source} ({len(docs)} chunks)" for source, docs in source_map.items()])
         
         document_chain = create_stuff_documents_chain(self.llm, prompt)
@@ -466,100 +523,77 @@ class LangChainRAG(LangChainBase):
             "messages": chat_history
         })
         
-        # Return the AI's response along with the chat history
+        # Return response with history
         return {"messages": [*chat_history, AIMessage(content=response)]}
 
-# --- Global LangGraph App Getters ---
+# Global app state
+_global_app = None
 
-def get_global_base_app(model_params: Optional[ModelParameters] = None) -> Any:
-    """Returns the single, globally compiled LangGraph application for the Base model."""
-    global _global_base_app
-    if _global_base_app is None:
-        logging.info("Initializing global Base LangGraph application.")
-        # Default model parameters for the global base app
-        if model_params is None:
-            model_params = {
-                "framework_type": "LangChain",
-                "backend": "HuggingFace",
-                "model_version": "Base",
-                "hf_params": {
-                    "model_name": "meta-llama/Llama-3.1-8B-Instruct", # Default to 8B with KV cache
-                    "use_kv_cache": True 
-                }
+def get_global_app() -> Any:
+    """Get the global LangGraph application."""
+    global _global_app
+    
+    if _global_app is None:
+        # Default config
+        model_params = {
+            "framework_type": "LangChain",
+            "backend": "HuggingFace",
+            "model_version": "Base",
+            "hf_params": {
+                "model_name": "meta-llama/Llama-3.1-8B-Instruct",
+                "use_kv_cache": True
             }
+        }
         
-        base_llm_instance = LangChainBase(model_params=model_params)
-
+        logging.info("Initializing global LangGraph application")
+        llm_instance = LangChainBase(model_params=model_params)
+        
         workflow = StateGraph(ChatState)
-        workflow.add_node("call_model", base_llm_instance._call_model_node)
+        workflow.add_node("call_model", llm_instance._call_model_node)
         workflow.set_entry_point("call_model")
         workflow.add_edge("call_model", END)
-        _global_base_app = workflow.compile(checkpointer=MemorySaver())
-        logging.info("Global Base LangGraph application initialized.")
-    return _global_base_app
+        
+        _global_app = workflow.compile(checkpointer=MemorySaver())
+        logging.info("Global LangGraph application initialized")
+    
+    return _global_app
 
 def set_global_app(model_params: ModelParameters) -> None:
-    """Rebuild the requested global LangGraph application with new parameters.
-
-    This is used by ChatManager.change_global_model to hot-swap the underlying
-    LLM without restarting the server.
-    """
-    global _global_base_app, _global_rag_app
-
-    version = model_params.get("model_version", "Base")
-    if version == "RAG":
-        _global_rag_app = None  # Drop existing compiled graph (will be GC'd)
-        _global_rag_app = get_global_rag_app(model_params)
-        _global_base_app = None  # Ensure only one active global
-    else:
-        _global_base_app = None
-        _global_base_app = get_global_base_app(model_params)
-        _global_rag_app = None
-
-
-def get_global_rag_app(model_params: Optional[ModelParameters] = None) -> Any:
-    """Returns the single, globally compiled LangGraph application for the RAG model."""
-    global _global_rag_app
-    if _global_rag_app is None:
-        logging.info("Initializing global RAG LangGraph application.")
-        # Default model parameters for the global RAG app
-        if model_params is None:
-            model_params = {
-                "framework_type": "LangChain",
-                "backend": "HuggingFace",
-                "model_version": "RAG",
-                "hf_params": {
-                    "model_name": "meta-llama/Llama-3.1-8B-Instruct", # Default to 8B with KV cache for RAG also
-                    "use_kv_cache": True 
-                }
-            }
+    """Update the global LangGraph application with new parameters."""
+    global _global_app
+    
+    if not model_params:
+        raise ValueError("model_params cannot be None")
+    
+    # Reset app instance
+    _global_app = None
+    
+    logging.info(f"Updating global app with model: {model_params}")
+    llm_instance = LangChainRAG(model_params=model_params) if model_params.get("model_version") == "RAG" else LangChainBase(model_params)
+    
+    workflow = StateGraph(ChatState)
+    
+    if model_params.get("model_version") == "RAG":
+        workflow.add_node("add_documents", llm_instance._add_documents_node)
+        workflow.add_node("retrieve", llm_instance._retrieve_node)
+        workflow.add_node("generate_response", llm_instance._generate_response_node)
+        workflow.add_node("base_chat_model", llm_instance._call_model_node)
         
-        rag_llm_instance = LangChainRAG(model_params=model_params)
-
-        workflow = StateGraph(ChatState)
-        workflow.add_node("add_documents", rag_llm_instance._add_documents_node)
-        workflow.add_node("retrieve", rag_llm_instance._retrieve_node)
-        workflow.add_node("generate_response", rag_llm_instance._generate_response_node)
-        workflow.add_node("base_chat_model", rag_llm_instance._call_model_node) # Can still use base chat logic in RAG
-
         workflow.set_entry_point("add_documents")
+        workflow.add_conditional_edges("add_documents", llm_instance._route_after_adding_documents)
+        workflow.add_edge("retrieve", "generate_response")
+        workflow.add_conditional_edges("generate_response", llm_instance._route_after_generation)
+        workflow.add_conditional_edges("base_chat_model", llm_instance._route_after_base_chat)
         workflow.add_conditional_edges(
             "add_documents",
-            rag_llm_instance._route_to_rag_or_base,
-            {
-                "retrieve": "retrieve",
-                "base_chat": "base_chat_model"
-            }
+            llm_instance._route_to_rag_or_base,
+            {"retrieve": "retrieve", "base_chat": "base_chat_model"}
         )
-        workflow.add_edge("retrieve", "generate_response")
-        workflow.add_edge("generate_response", END)
-        workflow.add_edge("base_chat_model", END) # End of path if no RAG needed
-
-        _global_rag_app = workflow.compile(checkpointer=MemorySaver())
-        logging.info("Global RAG LangGraph application initialized.")
-    return _global_rag_app
-
-# --- Entry point for initial app setup (optional, can be done via http_api) ---
-# When the module is first imported, we might want to initialize the default base app
-# This is mainly for convenience and ensures an app is ready if no specific model parameters are provided
-# get_global_base_app() # Commented out: better to lazy load when first requested via API
+    else:
+        workflow.add_node("call_model", llm_instance._call_model_node)
+        workflow.set_entry_point("call_model")
+        workflow.add_edge("call_model", END)
+    
+    _global_app = workflow.compile(checkpointer=MemorySaver())
+    logging.info("Global app updated with new model configuration")
+# Lazy load on first API request

@@ -105,7 +105,7 @@ modelSelect.addEventListener('change', async () => {
   }
 });
 
-// File handling utilities
+// File handling
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_FILE_TYPES = [
   'text/plain', 'text/markdown', 'application/json', 'text/csv',
@@ -114,7 +114,7 @@ const ALLOWED_FILE_TYPES = [
   'text/x-go', 'text/x-rust', 'application/x-php', 'text/x-typescript'
 ];
 
-// Create file input element
+// File input setup
 const fileInput = document.createElement('input');
 fileInput.type = 'file';
 fileInput.multiple = true;
@@ -123,23 +123,23 @@ fileInput.accept = '.txt,.md,.json,.csv,.py,.js,.jsx,.ts,.tsx,.html,.css,.xml,.j
 
 document.body.appendChild(fileInput);
 
-// Create upload button
+// Upload button setup
 const uploadBtn = document.createElement('button');
 uploadBtn.type = 'button';
 uploadBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>';
 uploadBtn.className = 'file-upload-btn';
 uploadBtn.title = 'Upload files (Ctrl+U)';
 
-// Insert upload button before send button
+// Position upload button
 const chatInputContainer = document.querySelector('.chat-input-container');
 if (chatInputContainer) {
   chatInputContainer.insertBefore(uploadBtn, sendBtn);
 }
 
-// Store files for the current message
+// Track current files
 let currentFiles = [];
 
-// Keyboard shortcut for file upload (Ctrl+U)
+// Upload shortcut (Ctrl+U)
 document.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
     e.preventDefault();
@@ -204,7 +204,7 @@ function formatFileSize(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-// Handle file input change
+// Process file selection
 fileInput.addEventListener('change', async (e) => {
   const files = Array.from(e.target.files);
   if (files.length === 0) return;
@@ -212,7 +212,7 @@ fileInput.addEventListener('change', async (e) => {
   const validFiles = [];
   const invalidFiles = [];
   
-  // Validate files
+  // Check file validity
   for (const file of files) {
     if (file.size > MAX_FILE_SIZE) {
       invalidFiles.push(`${file.name} (File too large: ${formatFileSize(file.size)} > ${formatFileSize(MAX_FILE_SIZE)})`);
@@ -228,7 +228,7 @@ fileInput.addEventListener('change', async (e) => {
     validFiles.push(file);
   }
   
-  // Show warnings for invalid files
+  // Handle invalid files
   if (invalidFiles.length > 0) {
     console.warn('Invalid files:', invalidFiles.join('\n'));
     alert(`Could not upload ${invalidFiles.length} file(s):\n\n${invalidFiles.join('\n')}`);
@@ -239,7 +239,7 @@ fileInput.addEventListener('change', async (e) => {
     updateFilePreview(currentFiles);
   }
   
-  // Reset the input to allow selecting the same file again
+  // Clear input for re-use
   fileInput.value = '';
 });
 
@@ -247,7 +247,7 @@ async function handleSend() {
   const prompt = input.value.trim();
   if (!prompt && currentFiles.length === 0) return;
 
-  // Show user message with file indicators
+  // Format message with files
   let messageContent = prompt;
   if (currentFiles.length > 0) {
     const fileList = currentFiles.map((f, i) => `#${i + 1} ${f.name} (${formatFileSize(f.size)})`).join('\n');
@@ -259,7 +259,7 @@ async function handleSend() {
   appendMessage(messageContent, 'user');
   input.value = '';
   
-  // Clear file preview
+  // Reset preview
   const filePreview = document.querySelector('.file-preview');
   if (filePreview) filePreview.remove();
   
@@ -267,7 +267,7 @@ async function handleSend() {
   const thinkingElement = thinkingMsg.querySelector('.message-content');
   
   try {
-    // Prepare file contents
+    // Process files
     const fileContents = [];
     const readPromises = [];
     
@@ -287,7 +287,7 @@ async function handleSend() {
       );
     }
     
-    // Wait for all files to be read
+    // Read all files
     const fileResults = await Promise.all(readPromises);
     const validFiles = fileResults.filter(Boolean);
     
@@ -299,12 +299,12 @@ async function handleSend() {
       throw new Error('Failed to read any files');
     }
     
-    // Update thinking message to show processing
+    // Update status
     if (thinkingElement) {
       thinkingElement.textContent = '📤 Uploading files...';
     }
     
-    // Send message with files
+    // Send request
     const response = await fetch('http://127.0.0.1:5000/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -322,13 +322,13 @@ async function handleSend() {
     
     const result = await response.json();
     
-    // Remove "Thinking..." or "Uploading..." message
+    // Clean up status
     if (thinkingMsg && thinkingMsg.parentNode) {
       thinkingMsg.remove();
     }
     
     if (result.status === 'success') {
-      // Format the response with proper line breaks and code blocks
+      // Format response
       const formattedResponse = formatResponse(result.response);
       appendMessage(formattedResponse, 'ai');
     } else {
@@ -341,34 +341,34 @@ async function handleSend() {
     }
     appendMessage(`Error: ${error.message}`, 'ai', 'error');
   } finally {
-    // Clear files after sending
+    // Reset state
     currentFiles = [];
   }
 }
 
-// Helper function to format response with markdown-like syntax
+// Format markdown response
 function formatResponse(text) {
   if (!text) return '';
   
-  // Convert markdown code blocks
+  // Code blocks
   let formatted = text.replace(/```(\w*)\n([\s\S]*?)\n```/g, (match, lang, code) => {
     return `<pre><code class="language-${lang || 'text'}">${escapeHtml(code)}</code></pre>`;
   });
   
-  // Convert inline code
+  // Inline code
   formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>');
   
-  // Convert file references (#1, #2, etc.)
+  // File references
   formatted = formatted.replace(/#(\d+)/g, '<span class="file-ref">#$1</span>');
   
-  // Convert URLs to links
+  // URL links
   formatted = formatted.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
   
-  // Convert newlines to <br> for HTML display
+  // Line breaks
   return formatted.replace(/\n/g, '<br>');
 }
 
-// Helper to escape HTML
+// HTML escaping
 function escapeHtml(unsafe) {
   return unsafe
     .replace(/&/g, '&amp;')
@@ -379,7 +379,7 @@ function escapeHtml(unsafe) {
 }
 }
 
-// Helper function to read file as text with progress
+// Read file with progress
 function readFileAsText(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -404,7 +404,7 @@ function readFileAsText(file) {
   });
 }
 
-// Add some basic styles for file uploads
+// File upload styles
 const style = document.createElement('style');
 style.textContent = `
 .file-upload-btn {
@@ -489,7 +489,7 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// Add some basic styling for the upload button
+// Upload button styles
 const uploadStyle = document.createElement('style');
 uploadStyle.textContent = `
   .upload-btn {
@@ -515,10 +515,10 @@ uploadStyle.textContent = `
 `;
 document.head.appendChild(uploadStyle);
 
-// Click handler for send button
+// Send button handler
 sendBtn.addEventListener('click', handleSend);
 
-// Enter key handler for input
+// Keyboard handler
 input.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();

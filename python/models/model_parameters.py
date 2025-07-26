@@ -11,4 +11,4 @@ class ModelParameters(TypedDict):
     backend: str         # e.g., "HuggingFace", "vLLM", "OpenAI"
     model_version: str   # e.g., "Base", "RAG"
     hf_params: Optional[HuggingFaceParameters] # Parameters specific to HuggingFace backend
-    # Add other backend parameters here as Optional fields in the future, e.g., vllm_params: Optional[VLLMParameters] 
+    # Add other backend parameters here as Optional fields in the future, e.g., vllm_params: Optional[VLLMParameters]
