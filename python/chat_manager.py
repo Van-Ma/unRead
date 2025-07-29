@@ -19,12 +19,6 @@ class ChatManager:
 
     def __init__(self):
         logging.info("ChatManager initialized, ready to interact with global LangGraph app.")
-        # Track model params per chat
-        self._chat_parameters: Dict[str, ModelParameters] = {}
-        # File content storage
-        self._chat_file_content: Dict[str, List[Dict[str, str]]] = {}
-        # Chat history storage
-        self._chat_history: Dict[str, List[Dict[str, str]]] = {}
 
     @staticmethod
     def _get_file_extension(filename: str) -> str:
@@ -94,6 +88,8 @@ class ChatManager:
             
         # Init model
         get_global_app().get_state({"configurable": {"thread_id": chat_id}})
+
+        print("type of app state: ", get_global_app().get_state({"configurable": {"thread_id": chat_id}}))
         
         message = f"Chat {chat_id} ready with {model_params['hf_params'].get('model_name')} (version: {model_params.get('model_version', 'Base')})"
         logging.info(message)
@@ -160,7 +156,7 @@ class ChatManager:
                 
                 # Build file context
                 file_context = [
-                    "## 📎 ATTACHED FILES",
+                    "## ATTACHED FILES",
                     "The following files have been uploaded and are available for reference:",
                     "- Reference files by their number (e.g., 'File 1') or by their name"
                 ]
@@ -267,16 +263,20 @@ You can reference them by their name or number (e.g., 'File 1' or 'test1.txt')."
                 "timestamp": datetime.datetime.now().isoformat()
             }
 
-    def get_chat_context_history(self, chat_id: str) -> List[Dict[str, str]]:
-        logging.info(f"Getting chat context history for chat {chat_id}.")
+    def get_context(self, chat_id: str) -> List[Dict[str, str]]:
+        """Get the chat context history from the global app.
         
-        if chat_id not in self._chat_history:
-            return []
+        Args:
+            chat_id: The ID of the chat
             
-        return self._chat_history[chat_id]
-
+        Returns:
+            List of message dictionaries containing the chat context
+        """
+        logging.info(f"Getting chat context for chat {chat_id}.")
+        
         config = {"configurable": {"thread_id": chat_id}}
         try:
+            current_app = get_global_app()
             state = current_app.get_state(config)
             history_dicts = []
             if state and state.messages:
@@ -287,12 +287,46 @@ You can reference them by their name or number (e.g., 'File 1' or 'test1.txt')."
             logging.warning(f"Could not retrieve state for chat {chat_id}: {e}")
             return []
 
-    def clear_context(self, chat_id: str) -> None:
-        """Clear the conversation context for a chat."""
-        if chat_id in self._chat_file_content:
-            self._chat_file_content[chat_id] = []
-        if chat_id in self._chat_history:
-            self._chat_history[chat_id] = []
+    def update_context(self, chat_id: str, new_context: List[Dict[str, str]]) -> None:
+        """Update the chat context in the global app.
+        
+        Args:
+            chat_id: The ID of the chat
+            new_context: List of message dictionaries to replace the current context
+            
+        Raises:
+            ValueError: If new_context is invalid
+        """
+        # Validate new context format
+        if not isinstance(new_context, list):
+            raise ValueError("Context must be a list of messages")
+            
+        for msg in new_context:
+            if not isinstance(msg, dict) or 'role' not in msg or 'content' not in msg:
+                raise ValueError("Invalid message format in context")
+                
+        try:
+            current_app = get_global_app()
+            config = {"configurable": {"thread_id": chat_id}}
+            
+            # Convert messages to LangChain format
+            messages = []
+            for msg in new_context:
+                if msg['role'] == 'user':
+                    messages.append(HumanMessage(content=msg['content']))
+                elif msg['role'] == 'assistant':
+                    messages.append(AIMessage(content=msg['content']))
+                elif msg['role'] == 'system':
+                    messages.append(SystemMessage(content=msg['content']))
+            
+            # Update the state with new messages
+            current_app.update_state(config, {"messages": messages})
+            
+        except Exception as e:
+            logging.error(f"Error updating context for chat {chat_id}: {e}")
+            raise
+
+
 
     def delete_chat(self, chat_id: str) -> tuple[bool, str]:
         """Delete a chat and its associated resources.
