@@ -14,7 +14,8 @@ from langchain_huggingface import HuggingFacePipeline
 from langchain_huggingface.chat_models import ChatHuggingFace
 
 from langgraph.graph import StateGraph, END
-from langgraph.checkpoint.memory import MemorySaver
+from langgraph.checkpoint.postgres import PostgresSaver
+import os
 from typing_extensions import TypedDict, Annotated
 
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
@@ -554,7 +555,26 @@ def get_global_app() -> Any:
         workflow.set_entry_point("call_model")
         workflow.add_edge("call_model", END)
         
-        _global_app = workflow.compile(checkpointer=MemorySaver())
+        # # Set up PostgresSaver for persistent LangGraph checkpoints in 'chats' schema
+        PG_URI = os.getenv("LANGGRAPH_PG_CHECKPOINT_URI")
+        if PG_URI is None:
+            raise RuntimeError("LANGGRAPH_PG_CHECKPOINT_URI must be set in your .env file!")
+
+        # Instantiate the serializer with pickle fallback for complex objects
+        serializer = JsonPlusSerializer(pickle_fallback=True)
+
+        # Create the full database connection string, ensuring the schema is set
+        conn_string = PG_URI + "?options=-csearch_path%3Dchats"
+
+        # Create the database connection object
+        conn = psycopg.connect(conn_string)
+
+        # Instantiate the saver using the main constructor to pass the custom serializer
+        checkpointer = PostgresSaver(sync_connection=conn, serde=serializer)
+
+        checkpointer.setup() 
+
+        _global_app = workflow.compile(checkpointer=checkpointer)
         logging.info("Global LangGraph application initialized")
     
     return _global_app
@@ -608,6 +628,13 @@ def set_global_app(model_params: ModelParameters) -> None:
         workflow.set_entry_point("call_model")
         workflow.add_edge("call_model", END)
     
-    _global_app = workflow.compile(checkpointer=MemorySaver())
+    # Set up PostgresSaver for persistent LangGraph checkpoints in 'chats' schema
+    PG_URI = os.getenv("LANGGRAPH_PG_CHECKPOINT_URI")
+    if PG_URI is None:
+        raise RuntimeError("LANGGRAPH_PG_CHECKPOINT_URI must be set in your .env file!")
+    checkpointer = PostgresSaver.from_conn_string(PG_URI + "?options=-csearch_path%3Dchats")
+    checkpointer.setup()  # Only needs to be called once
+
+    _global_app = workflow.compile(checkpointer=checkpointer)
     logging.info("Global app updated with new model configuration")
 # Lazy load on first API request

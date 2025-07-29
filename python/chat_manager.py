@@ -9,6 +9,8 @@ from typing import Optional, Dict, List, Any, Union
 from models.langchain import get_global_app, set_global_app
 from models.model_parameters import ModelParameters
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from langchain_core.runnables import RunnableConfig # TODO: Confirm needed
+from langgraph.checkpoint.postgres import PostgresSaver
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -265,7 +267,7 @@ You can reference them by their name or number (e.g., 'File 1' or 'test1.txt')."
                 "timestamp": datetime.datetime.now().isoformat()
             }
 
-    def get_context_history(self, chat_id: str) -> List[Dict[str, str]]:
+    def get_chat_context_history(self, chat_id: str) -> List[Dict[str, str]]:
         logging.info(f"Getting chat context history for chat {chat_id}.")
         
         if chat_id not in self._chat_history:
@@ -388,3 +390,44 @@ You can reference them by their name or number (e.g., 'File 1' or 'test1.txt')."
             error_msg = f"Failed to switch global model: {str(e)}"
             logging.error(error_msg)
             return False, error_msg
+
+    def save_chat_context(self, chat_id: str) -> tuple[bool, str]:
+        """
+        Manually saves (flushes) the current conversation state to the checkpointer database.
+        This uses the app's configured checkpointer, respecting its serialization settings.
+        """
+        logging.info(f"Attempting to save context for chat_id: {chat_id}")
+
+        try:
+            # 1. Get the compiled LangGraph app instance
+            current_app = get_global_app()
+
+            # 2. CRITICAL: Check if the app was configured with a checkpointer
+            if not current_app.checkpointer:
+                error_msg = "The LangGraph app is not configured with a checkpointer. Persistence is disabled."
+                logging.error(error_msg)
+                return False, error_msg
+
+            # 3. Define the configuration for the specific chat thread
+            config: RunnableConfig = {"configurable": {"thread_id": chat_id}}
+
+            # 4. Get the latest state snapshot for the thread
+            # This object contains the full, current state of the graph.
+            snapshot = current_app.get_state(config)
+
+            if not snapshot:
+                logging.warning(f"No state found for chat_id: {chat_id}. Nothing to save.")
+                return False, f"No state found for chat_id: {chat_id}."
+
+            # 5. Use the checkpointer's `put` method to save the state.
+            # The checkpointer handles all serialization (including pickle fallback)
+            # and database communication automatically.
+            current_app.checkpointer.put(config, snapshot.to_checkpoint())
+
+            success_msg = f"Successfully saved context for chat {chat_id} using the app's checkpointer."
+            logging.info(success_msg)
+            return True, success_msg
+
+        except Exception as e:
+            logging.exception(f"An unexpected error occurred while saving context for chat {chat_id}: {e}")
+            return False, f"Failed to save context for chat {chat_id}: {e}"
