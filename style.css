@@ -208,19 +208,101 @@
     box-sizing: border-box;
   }
 
-  /* Left half - file container */
-  .file-container {
+  .file-container,
+  .manage-context-container {
     flex: 1 1 50%;
-    display: flex;
-    flex-direction: column;
     border: 1px solid #ccc;
     border-radius: 6px;
     background: rgb(238, 238, 238);
     padding: 10px;
     box-sizing: border-box;
     overflow: hidden;
+    position: relative;
+    /* make it the positioning context */
+  }
+
+  #context-project-name {
+    width: 80%;
+    margin: 50px auto;
+  }
+
+  .file-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+
+  .edit-context-btn:hover,
+  .trash-btn:hover {
+    color: rgb(0, 66, 199);
+  }
+
+  .context-container {
+    margin: 60px auto 50px;
+    overflow: auto;
+    width: 80%;
 
   }
+
+  .context-container input[type="checkbox"] {
+    margin-right: 30px;
+    cursor: pointer;
+    display: none;
+    width: 20px;
+    height: 20px;
+  }
+
+  .context-container.show-checkboxes input[type="checkbox"] {
+    display: inline-block;
+  }
+
+  .context-container label {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 1vw;
+  }
+
+
+  /* Edit button - top right */
+  .edit-context-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+
+    background-color: transparent;
+    border: none;
+    font-weight: bold;
+    font-size: 12pt;
+    cursor: pointer;
+    padding: 10px 20px;
+    padding-left: 90%;
+    background: rgb(238, 238, 238);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* Trash button - bottom left */
+  .trash-btn {
+    position: absolute;
+    bottom: 10px;
+    left: 0px;
+    background-color: transparent;
+    border: none;
+    font-weight: bold;
+    font-size: 12pt;
+    cursor: pointer;
+    padding: 20px 20px;
+    padding-right: 90%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgb(238, 238, 238);
+    width: 100%;
+  }
+
+
 
   #tab-bar {
     display: flex;
@@ -323,32 +405,32 @@
   }
 
   #chat-output .user,
-#chat-output .bot {
-  margin-bottom: 10px;
-  padding: 5px;
-  border-radius: 15px;
-  max-width: 90%;
-  word-wrap: break-word;
-  line-height: 2;
-  font-size: 12pt;
-  max-width: 50%;
+  #chat-output .bot {
+    margin-bottom: 10px;
+    padding: 5px;
+    border-radius: 15px;
+    max-width: 90%;
+    word-wrap: break-word;
+    line-height: 2;
+    font-size: 12pt;
+    max-width: 50%;
 
-}
+  }
 
-#chat-output .user {
-  background: #dcedff;
+  #chat-output .user {
+    background: #dcedff;
     border-color: #007bff;
     color: #007bff;
-  align-self: flex-end;
-  margin-left: auto;
-}
+    align-self: flex-end;
+    margin-left: auto;
+  }
 
-#chat-output .bot {
-  color: black;
-  align-self: flex-start;
-  margin-right: auto;
-  text-align: left;
-}
+  #chat-output .bot {
+    color: black;
+    align-self: flex-start;
+    margin-right: auto;
+    text-align: left;
+  }
 
   .loader-container {
     display: flex;

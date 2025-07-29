@@ -17,7 +17,7 @@
       <img id="logoimg" src="images/logo.png">
       <button id="file-btn">File</button>
       <button id="chat-btn">Edit</button>
-      <button id="file-btn">Help</button>
+      <button id="help-btn">Help</button>
     </div>
   </div>
 
@@ -84,13 +84,37 @@
 
   <!-- Main content -->
   <div class="page-layout">
-    <!-- File upload area -->
+<div class="manage-context-container">
+  <h2 id="context-project-name">Project Name</h2>
+  <button class="edit-context-btn">Edit</button>
+  <div class="context-container">
+  <label><input type="checkbox" value="f1"> introduction.pdf</label><br />
+  <label><input type="checkbox" value="f2"> chapter1.txt</label><br />
+  <label><input type="checkbox" value="f3"> notes.docx</label><br />
+  <label><input type="checkbox" value="f4"> summary.docx</label><br />
+  <label><input type="checkbox" value="f5"> data.csv</label><br />
+  <label><input type="checkbox" value="f6"> appendix.pdf</label><br />
+  <label><input type="checkbox" value="f7"> reference.docx</label><br />
+  <label><input type="checkbox" value="f8"> chart.png</label><br />
+  <label><input type="checkbox" value="f9"> schedule.xlsx</label><br />
+  <label><input type="checkbox" value="f10"> draft.txt</label><br />
+  <label><input type="checkbox" value="f11"> terms.docx</label><br />
+  <label><input type="checkbox" value="f12"> plan.json</label><br />
+  <label><input type="checkbox" value="f13"> roadmap.pdf</label><br />
+  <label><input type="checkbox" value="f14"> metrics.csv</label><br />
+  <label><input type="checkbox" value="f15"> slides.pptx</label><br />
+  </div>
+   <button class="trash-btn"><svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16">
+  <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47M8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5"/>
+</svg></button>
+</div>
+    <!-- File upload area 
     <div class="file-container">
       <div id="tab-bar"></div>
       <div id="drop-area">Drag & Drop a text file here or click to upload</div>
       <input type="file" id="file-input" accept=".txt,.md,.doc,.docx,.pdf,.rtf,.odt,.html,.htm" multiple style="display:none" />
       <div id="file-content"></div>
-    </div>
+    </div>-->
     <!-- Chat interface -->
     <div class="chat-container">
       <div class="model-container">
@@ -113,7 +137,8 @@
 
       <h2 id="file-name-display"></h2>
       <div id="model-loader" class="loader-container" style="display:none;">
-        <div class="spinner"></div>
+        <div class="spinner">
+        </div>
         <div class="loading-text">loading model...</div>
       </div>
       <div id="chat-output"></div>
@@ -127,7 +152,6 @@
               d="M16 8A8 8 0 1 0 0 8a8 8 0 0 0 16 0m-7.5 3.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707z" />
           </svg>
         </button>
-
       </div>
     </div>
   </div>
@@ -149,6 +173,23 @@
     const manageBtn = document.getElementById('manage-context-btn');
     const viewBtn = document.getElementById('view-chat-btn');
     const workbenchTab = document.querySelector('.workbench-tab');
+
+      const editBtn = document.querySelector('.edit-context-btn');
+  const trashBtn = document.querySelector('.trash-button');
+  const contextContainer = document.querySelector('.context-container');
+
+ editBtn.addEventListener('click', () => {
+  const toggledOn = contextContainer.classList.toggle('show-checkboxes');
+  if (!toggledOn) {
+    // If class removed (checkboxes hidden), clear all checkboxes
+    const checkboxes = contextContainer.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(cb => cb.checked = false);
+  }
+});
+
+  trashBtn.addEventListener('click', () => {
+    contextContainer.classList.remove('show-checkboxes');
+  });
 
     let isOpen = false;
     let tabs = [];

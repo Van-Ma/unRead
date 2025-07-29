@@ -8,9 +8,9 @@ const baseUrl = "http://127.0.0.1:5000";
 let previousModelValue = modelSelect?.value || '';
 let chatId = null;
 
-async function initializeChat() {
-  const modelVersion = "Base";  
-  const modelName = "meta-llama/Llama-3.2-1B-Instruct"; 
+//async function initializeChat() {
+  //const modelVersion = "Base";  
+  //const modelName = "meta-llama/Llama-3.2-1B-Instruct"; 
 
   const payload = {
     modelParameters: {
@@ -37,7 +37,7 @@ async function initializeChat() {
   } else {
     throw new Error(data.message || "Failed to start chat");
   }
-}
+//}
 
 async function sendMessage() {
   if (!chatId) await initializeChat();
@@ -101,14 +101,41 @@ modelSelect.addEventListener('change', async () => {
     aiInput.focus();
   } catch (err) {
     modelSelect.value = previousModelValue;
-    alert('Model switch failed: ' + err.message);
+    alert('Failed to switch model. Reverting selection.');
   }
-
-  hideModelLoader?.();
 });
 
-sendBtn.addEventListener('click', sendMessage);
-aiInput.addEventListener('keydown', e => {
+
+async function handleSend() {
+      const prompt = input.value.trim();
+      if (!prompt) return;
+
+      appendMessage(prompt, 'user');
+      input.value = '';
+
+      appendMessage('🤖 Thinking...', 'ai');
+
+      // Replace this with your actual API call
+      const response = await fetch('http://127.0.0.1:5000/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      });
+
+      const result = await response.json();
+
+      // Remove "Thinking..." placeholder
+      const lastMsg = document.querySelector('.ai-msg:last-child');
+      if (lastMsg && lastMsg.textContent === '🤖 Thinking...') {
+        lastMsg.remove();
+      }
+
+      appendMessage(result.response, 'ai');
+    }
+    //click
+  sendBtn.addEventListener('click', sendMessage);
+
+aiInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     sendMessage();
   }
