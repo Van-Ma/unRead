@@ -1,3 +1,4 @@
+// Auto-reload for development
 require('electron-reload')(__dirname, {
   electron: require(`${__dirname}/node_modules/electron`)
 });
@@ -9,22 +10,7 @@ const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 const { execFile } = require('child_process');
 
-function createWindow() {
-  const win = new BrowserWindow({
-    width: 1000,
-    height: 700,
-      icon: path.join(__dirname, 'images', 'logoicon.ico'),
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
-  });
-
-  win.loadFile(path.join(__dirname, 'index.html'));
-  createMenu(win);
-}
-
+// Main window configuration
 function createWindow() {
   const win = new BrowserWindow({
     width: 1000,
@@ -38,11 +24,14 @@ function createWindow() {
   });
 
   win.loadFile(path.join(__dirname, 'index.html'));
-
-  // Disable the menu completely:
+  
+  // Disable the menu completely
   Menu.setApplicationMenu(null);
 }
 
+
+
+// Parse different file types to text
 async function parseFile(filePath) {
   const ext = filePath.split('.').pop().toLowerCase();
 
@@ -61,7 +50,7 @@ async function parseFile(filePath) {
 }
 
 
-// Handle file parsing request from renderer
+// Handle file parsing from renderer process
 ipcMain.handle('parse-file', async (event, filePath) => {
   if (!fs.existsSync(filePath)) {
     return 'File not found: ' + filePath;
@@ -75,7 +64,7 @@ ipcMain.handle('parse-file', async (event, filePath) => {
   }
 });
 
-// App lifecycle
+// Application lifecycle events
 app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
