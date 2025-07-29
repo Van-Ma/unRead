@@ -11,7 +11,7 @@
 </head>
 
 <body>
-  <!--navigation menu -->
+  <!-- Navigation menu -->
   <div class="nav-bar">
     <div id="file-menu">
       <img id="logoimg" src="images/logo.png">
@@ -34,7 +34,7 @@
     <div id="chat-tab-history" class="menu-item">Clear Chat</div>
   </div>
 
-  <!--workbench-->
+  <!-- Workbench -->
   <div class="workbench-container">
     <div class="workbench-nav">
       <div id="new-chat-btn" class="icon-tooltip">
@@ -82,20 +82,19 @@
     </div>
   </div>
 
-
-  <!--main page-->
+  <!-- Main content -->
   <div class="page-layout">
-    <!--file container-->
+    <!-- File upload area -->
     <div class="file-container">
       <div id="tab-bar"></div>
       <div id="drop-area">Drag & Drop a text file here or click to upload</div>
       <input type="file" id="file-input" accept=".txt,.md,.doc,.docx,.pdf,.rtf,.odt,.html,.htm" multiple style="display:none" />
       <div id="file-content"></div>
     </div>
-    <!--chat container-->
+    <!-- Chat interface -->
     <div class="chat-container">
       <div class="model-container">
-        <!--model selection-->
+        <!-- Model selection -->
         <select id="model-select">
           <option value="LangChainKVCache/meta-llama/Llama-3.1-8B-Instruct">
             LangChainKVCache/meta-llama/Llama-3.1-8B-Instruct</option>
@@ -118,7 +117,7 @@
         <div class="loading-text">loading model...</div>
       </div>
       <div id="chat-output"></div>
-      <!--chat controls-->
+      <!-- Message input -->
       <div id="chat-controls">
         <input type="text" id="ai-input" placeholder="Ask AI anything..." />
         <button id="ai-send" aria-label="Send">
@@ -132,7 +131,7 @@
       </div>
     </div>
   </div>
-  <!--page footer-->
+  <!-- Footer -->
   <div class="footer-container">
     <img src="images/logo.png">
     <p id="chat-id"></p>
@@ -157,7 +156,7 @@
     let currentChatId = null;
     let activeSubmenu = null;
 
-    //handle file types
+    // Process PDF files
     async function handlePdf(file) {
       const reader = new FileReader();
 
@@ -218,7 +217,7 @@
       }
     }
 
-    //handle nav menu button event
+    // Toggle file menu
     fileBtn.addEventListener('click', (event) => {
       event.stopPropagation();
       fileBtn.classList.add("active");
@@ -262,10 +261,9 @@
       activeSubmenu = submenu.style.display === 'block' ? submenu : null;
     }
 
-
-    //workbench nav button event click
+    // New chat button
     document.getElementById('new-chat-btn').addEventListener('click', async () => {
-      // Ask user if they want to save changes before creating a new chat
+      // Confirm before creating new chat
       const confirmSave = confirm("Do you want to save your changes before starting a new chat?");
 
       if (confirmSave) {
@@ -317,58 +315,7 @@
         });
     });
 
-
-    //sliding effect open workbench
-    manageBtn.addEventListener('click', () => {
-      if (!isOpen) {
-        workbenchTab.classList.remove('animate-out');
-        workbenchTab.style.display = 'block';
-        workbenchTab.classList.add('animate-in');
-      } else {
-        workbenchTab.classList.remove('animate-in');
-        workbenchTab.classList.add('animate-out');
-        setTimeout(() => {
-          workbenchTab.style.display = 'none';
-        }, 5);
-      }
-      isOpen = !isOpen;
-    });
-
-    //sliding effect open workbench
-    viewBtn.addEventListener('click', () => {
-      if (!isOpen) {
-        workbenchTab.classList.remove('animate-out');
-        workbenchTab.style.display = 'block';
-        workbenchTab.classList.add('animate-in');
-      } else {
-        workbenchTab.classList.remove('animate-in');
-        workbenchTab.classList.add('animate-out');
-        setTimeout(() => {
-          workbenchTab.style.display = 'none';
-        }, 5);
-      }
-      isOpen = !isOpen;
-    });
-    // dynamically render workbench tabs 
-    document.addEventListener('DOMContentLoaded', () => {
-      // Get all buttons with class 'icon-tooltip'
-      const buttons = document.querySelectorAll('.icon-tooltip');
-      // Get the tab container to update content
-      const tabContent = document.querySelector('.workbench-tab');
-
-      buttons.forEach(button => {
-        button.addEventListener('click', () => {
-          // Find the tooltip text inside the clicked button
-          const tooltip = button.querySelector('.tooltip-text');
-          if (tooltip) {
-            // Update the workbench-tab content with tooltip text
-            tabContent.textContent = tooltip.textContent;
-          }
-        });
-      });
-    });
-
-    //model loading symbol 
+    // Show loading indicator
     function showModelLoader() {
       document.getElementById('model-loader').style.display = 'flex';
     }
@@ -376,7 +323,7 @@
       document.getElementById('model-loader').style.display = 'none';
     }
 
-    // Drag & drop events
+    // File drag and drop
     dropArea.addEventListener('click', () => fileInput.click());
     dropArea.addEventListener('dragover', (e) => {
       e.preventDefault();
@@ -402,7 +349,7 @@
       fileInput.value = '';
     });
 
-    //create tab 
+    // Create new file tab
     function createTab(fileName, fileText = '') {
       const existingTab = tabs.find(tab => tab.name === fileName);
       if (existingTab) {
@@ -424,7 +371,7 @@
       renderFileTabs();
       switchTab(fileId);
     }
-    //render tab
+    // Update tab display
     function renderFileTabs() {
       const tabBar = document.getElementById('tab-bar');
       tabBar.innerHTML = ''; // Clear existing tabs
@@ -456,7 +403,7 @@
         tabBar.appendChild(tabElement);
       });
     }
-    //switch tabs
+    // Switch between tabs
     function switchTab(tabId) {
       currentTabId = tabId;
 
@@ -470,7 +417,7 @@
 
       renderFileTabs();
     }
-    //close file tab
+    // Close tab
     function closeTab(tabId) {
       // Find index of the tab to remove
       const index = tabs.findIndex(tab => tab.id === tabId);
@@ -495,7 +442,7 @@
       renderFileContent();
     }
 
-    //chat functionality
+    // Add message to chat
     function appendMessage(text, sender = 'user') {
       const msgDiv = document.createElement('div');
       msgDiv.className = sender === 'user' ? 'user-msg' : 'ai-msg';
