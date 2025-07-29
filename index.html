@@ -89,7 +89,7 @@
     <div class="file-container">
       <div id="tab-bar"></div>
       <div id="drop-area">Drag & Drop a text file here or click to upload</div>
-      <input type="file" id="file-input" accept=".txt,.md,.doc,.docx,.pdf,.rtf,.odt,.html,.htm" style="display:none" />
+      <input type="file" id="file-input" accept=".txt,.md,.doc,.docx,.pdf,.rtf,.odt,.html,.htm" multiple style="display:none" />
       <div id="file-content"></div>
     </div>
     <!--chat container-->
@@ -137,8 +137,6 @@
     <img src="images/logo.png">
     <p id="chat-id"></p>
   </div>
-
-
 
   <script>
     const dropArea = document.getElementById('drop-area');
@@ -392,14 +390,16 @@
       e.preventDefault();
       dropArea.classList.remove('dragover');
       if (e.dataTransfer.files.length > 0) {
-        handleFile(e.dataTransfer.files[0]);
+        for (const file of e.dataTransfer.files) {
+          handleFile(file);
+        }
       }
     });
     fileInput.addEventListener('change', (e) => {
-      if (fileInput.files.length > 0) {
-        handleFile(fileInput.files[0]);
-        fileInput.value = '';  
+      for (const file of fileInput.files) {
+        handleFile(file);
       }
+      fileInput.value = '';
     });
 
     //create tab 
