@@ -6,13 +6,10 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, BaseMessage
-from langchain.chains import create_history_aware_retriever, create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain_core.messages import BaseMessage
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain.schema import Document
 from langchain_huggingface import HuggingFacePipeline
 from langchain_huggingface.chat_models import ChatHuggingFace
 
@@ -43,16 +40,15 @@ def append_file_content(current: List[Dict[str, str]], new: List[Dict[str, str]]
 
 
 # Supported HuggingFace models
-# TODO: Move to config
+# TODO: Move to config json
 ALLOWED_HUGGINGFACE_MODELS = {
     "meta-llama/Llama-3.1-8B-Instruct",
     "meta-llama/Llama-3.2-1B-Instruct",
     "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
 }
 
-# Global app instances
-_global_base_app = None
-_global_rag_app = None
+# Global app instance
+_global_app = None
 
 class LangChainBase:
     """Base LangChain implementation with LangGraph state management."""
@@ -526,11 +522,16 @@ class LangChainRAG(LangChainBase):
         # Return response with history
         return {"messages": [*chat_history, AIMessage(content=response)]}
 
-# Global app state
-_global_app = None
 
 def get_global_app() -> Any:
-    """Get the global LangGraph application."""
+    """Get the global LangGraph application instance.
+    
+    Initializes a new instance with default parameters if one doesn't exist.
+    The default configuration uses the Base model with KV-caching enabled.
+    
+    Returns:
+        The global LangGraph application instance.
+    """
     global _global_app
     
     if _global_app is None:
@@ -559,7 +560,20 @@ def get_global_app() -> Any:
     return _global_app
 
 def set_global_app(model_params: ModelParameters) -> None:
-    """Update the global LangGraph application with new parameters."""
+    """Update the global LangGraph application with new model parameters.
+    
+    This will reinitialize the global app with either a Base or RAG model
+    based on the provided parameters. All existing chat sessions will use
+    the new model configuration.
+    
+    Args:
+        model_params: Dictionary containing model configuration parameters.
+                     Must include 'model_version' ('Base' or 'RAG') and
+                     HuggingFace parameters.
+                     
+    Raises:
+        ValueError: If model_params is None or invalid.
+    """
     global _global_app
     
     if not model_params:
