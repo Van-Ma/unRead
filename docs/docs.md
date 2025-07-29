@@ -260,27 +260,6 @@ Initializes or changes the global model used for all new chats.
   ```json
   {
     "status": "success",
-- **Request Body:**
-  ```json
-  {
-    "modelParameters": {
-      "framework_type": "LangChain",
-      "backend": "HuggingFace",
-      "model_version": "Base",
-      "hf_params": {
-        "model_name": "meta-llama/Llama-3.1-8B-Instruct",
-        "use_kv_cache": true
-      }
-    }
-  }
-  ```
-  | model_name | String | Yes | Model identifier from HuggingFace |
-  | use_kv_cache | Boolean | Yes | Whether to use KV cache |
-
-- **Success Response (200 OK):**
-  ```json
-  {
-    "status": "success",
     "chatId": "550e8400-e29b-41d4-a716-446655440000",
     "message": "Chat created successfully"
   }
@@ -335,7 +314,7 @@ Sends a message to the chat and gets a response. Supports multiple file attachme
 #### 4. Get Chat History
 Retrieves the conversation history for a chat.
 
-- **Endpoint:** `GET /get_context_history/<chat_id>`
+- **Endpoint:** `GET /get_chat_context_history/<chat_id>`
 - **URL Parameters:**
   - `chat_id`: The ID of the chat
   
@@ -393,6 +372,28 @@ Deletes a chat and frees associated resources.
   {
     "status": "success",
     "message": "Chat 550e8400-e29b-41d4-a716-446655440000 deleted"
+  }
+  ```
+
+#### 7. Save Chat Context
+Saves the current conversation state (messages, files, etc.) for a chat to the database.
+
+- **Endpoint:** `POST /save_chat_context`
+- **Request Body:**
+  ```json
+  {
+    "chatId": "550e8400-e29b-41d4-a716-446655440000"
+  }
+  ```
+  | Field   | Type   | Required | Description                     |
+  |---------|--------|----------|---------------------------------|
+  | chatId  | String | Yes      | The chat ID to save context for |
+
+- **Success Response (200 OK):**
+  ```json
+  {
+    "status": "success",
+    "message": "Context saved for chat 550e8400-e29b-41d4-a716-446655440000."
   }
   ```
 

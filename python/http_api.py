@@ -130,8 +130,8 @@ def chat_message():
             "message": f"An error occurred: {str(e)}"
         }), 500
 
-@app.route('/get_context_history', methods=['POST'])
-def get_context_history():
+@app.route('/get_chat_context_history', methods=['POST'])
+def get_chat_context_history():
     data = request.json
     chat_id = data.get('chatId')
 
@@ -139,7 +139,7 @@ def get_context_history():
         return jsonify({"status": "error", "message": "Chat ID is required."}), 400
 
     try:
-        history = chat_manager.get_context_history(chat_id)
+        history = chat_manager.get_chat_context_history(chat_id)
         return jsonify({"status": "success", "history": history}), 200
     except Exception as e:
         logging.exception(f"Error getting context history for chat {chat_id}:")
@@ -181,6 +181,21 @@ def delete_chat():
     except Exception as e:
         logging.exception(f"Error deleting chat {chat_id}:")
         return jsonify({"status": "error", "message": f"An error occurred: {str(e)}"}), 500
+
+@app.route('/save_chat_context', methods=['POST'])
+def save_chat_context():
+    data = request.json
+    chat_id = data.get('chatId')
+    if not chat_id:
+        return jsonify({"status": "error", "message": "chatId is required."}), 400
+    try:
+        success, message = chat_manager.save_chat_context(chat_id)
+        if success:
+            return jsonify({"status": "success", "message": message}), 200
+        else:
+            return jsonify({"status": "error", "message": message}), 500
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 if __name__ == '__main__':
