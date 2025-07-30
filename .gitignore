@@ -5,5 +5,5 @@ package-lock.json/
 python/TODO.txt
 python/__pycache__/
 python/models/__pycache__/
-
+dist/
 *.pyc

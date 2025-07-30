@@ -5,10 +5,6 @@ require('electron-reload')(__dirname, {
 
 const { app, BrowserWindow, ipcMain, Menu, dialog } = require('electron');
 const path = require('path');
-const fs = require('fs');
-const pdfParse = require('pdf-parse');
-const mammoth = require('mammoth');
-const { execFile } = require('child_process');
 
 // Main window configuration
 function createWindow() {
@@ -23,46 +19,11 @@ function createWindow() {
     },
   });
 
-  win.loadFile(path.join(__dirname, 'index.html'));
-  
-  // Disable the menu completely
+  win.loadURL('http://localhost:5173');
+
   Menu.setApplicationMenu(null);
 }
 
-
-
-// Parse different file types to text
-async function parseFile(filePath) {
-  const ext = filePath.split('.').pop().toLowerCase();
-
-  if (ext === 'pdf') {
-    const dataBuffer = fs.readFileSync(filePath);
-    const data = await pdfParse(dataBuffer);
-    return data.text;
-  } else if (ext === 'docx') {
-    const data = await mammoth.extractRawText({ path: filePath });
-    return data.value;
-  } else if (ext === 'txt' || ext === 'md') {
-    return fs.readFileSync(filePath, 'utf8');
-  } else {
-    return 'Unsupported file type for parsing.';
-  }
-}
-
-
-// Handle file parsing from renderer process
-ipcMain.handle('parse-file', async (event, filePath) => {
-  if (!fs.existsSync(filePath)) {
-    return 'File not found: ' + filePath;
-  }
-
-  try {
-    const text = await parseFile(filePath);
-    return text;
-  } catch (error) {
-    return 'Error parsing file: ' + error.message;
-  }
-});
 
 // Application lifecycle events
 app.whenReady().then(createWindow);
@@ -70,4 +31,3 @@ app.whenReady().then(createWindow);
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
-
