@@ -1,12 +1,12 @@
 {
-  "name": "peanutsapp",
+  "name": "unread",
   "version": "1.0.0",
   "main": "main.js",
-"scripts": {
-  "dev": "vite",
-  "build": "vite build",
-  "start": "electron ."
-},
+  "scripts": {
+     "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "build": "vite build",
+    "start": "electron ."
+  },
   "dependencies": {
     "electron": "^28.0.0",
     "mammoth": "^1.9.1",
@@ -22,5 +22,22 @@
     "sass": "^1.89.2",
     "vite": "^6.3.5",
     "wait-on": "^8.0.4"
-  }
+  },
+  "description": "A multi-model chat application with advanced document analysis capabilities, supporting local LLMs through LangChain and Hugging Face with an Electron frontend.",
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Van-Ma/filereader.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Van-Ma/filereader/issues"
+  },
+  "homepage": "https://github.com/Van-Ma/filereader#readme"
 }
