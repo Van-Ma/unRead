@@ -8,9 +8,9 @@ const baseUrl = "http://127.0.0.1:5000";
 let previousModelValue = modelSelect?.value || '';
 let chatId = null;
 
-//async function initializeChat() {
-  //const modelVersion = "Base";  
-  //const modelName = "meta-llama/Llama-3.2-1B-Instruct"; 
+async function initializeChat() {
+  const modelVersion = "Base";  
+  const modelName = "meta-llama/Llama-3.2-1B-Instruct"; 
 
   const payload = {
     modelParameters: {
@@ -23,6 +23,7 @@ let chatId = null;
       }
     }
   };
+}
 
   const response = await fetch(`${baseUrl}/create_chat`, {
     method: "POST",
@@ -37,7 +38,7 @@ let chatId = null;
   } else {
     throw new Error(data.message || "Failed to start chat");
   }
-//}
+
 
 async function sendMessage() {
   if (!chatId) await initializeChat();

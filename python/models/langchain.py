@@ -14,7 +14,7 @@ from langchain_huggingface import HuggingFacePipeline
 from langchain_huggingface.chat_models import ChatHuggingFace
 
 from langgraph.graph import StateGraph, END
-from langgraph.checkpoint.postgres import PostgresSaver
+from langgraph_checkpoints.postgres import PostgresSaver
 import os
 from typing_extensions import TypedDict, Annotated
 
@@ -556,7 +556,7 @@ def get_global_app() -> Any:
         workflow.add_edge("call_model", END)
         
         # # Set up PostgresSaver for persistent LangGraph checkpoints in 'chats' schema
-        PG_URI = os.getenv("LANGGRAPH_PG_CHECKPOINT_URI")
+        PG_URI =  os.getenv("LANGGRAPH_PG_CHECKPOINT_URI")
         if PG_URI is None:
             raise RuntimeError("LANGGRAPH_PG_CHECKPOINT_URI must be set in your .env file!")
 

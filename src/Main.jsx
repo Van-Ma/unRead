@@ -3,7 +3,17 @@ import React, { useState } from 'react';
 import Dashboard from './Dashboard';
 
 function Main() {
-    const [activePage, setActivePage] = useState('landing'); 
+    const [activePage, setActivePage] = useState('landing');
+    const [dashboardSection, setDashboardSection] = useState(null); 
+
+     if (dashboardSection) {
+    return (
+      <Dashboard 
+        section={dashboardSection} 
+        onBack={() => setDashboardSection(null)} 
+      />
+    );
+  }
 
     const renderContent = () => {
         switch (activePage) {
@@ -14,12 +24,14 @@ function Main() {
                             <label>Project Name: </label>
                             <input />
                         </div>
+                        <img id="monkey-icon" src="monkey.png"></img>
                         <div className="new-project-btns">
                             <button id="back-btn" onClick={() => setActivePage('landing')}>back</button>
-                            <button>create</button>
+                            <button onClick={() => setDashboardSection('new')}>Create</button>
                         </div>
                     </div>
                 );
+
             case 'open':
                 return (
                     <div className="open-project-container">
@@ -32,7 +44,7 @@ function Main() {
                         </div>
                         <div className="open-project-btns">
                             <button id="back-btn" onClick={() => setActivePage('landing')}>back</button>
-                            <button>open</button>
+                            <button onClick={() => setDashboardSection('open')}>open</button>
                         </div>
                     </div>
                 );
@@ -53,6 +65,7 @@ function Main() {
                         <button id="back-btn" onClick={() => setActivePage('landing')}>back</button>
                     </div>
                 );
+
             default:
                 return (
                     <div className="landing-container">
