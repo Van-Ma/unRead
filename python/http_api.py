@@ -7,7 +7,6 @@ import logging
 
 from chat_manager import ChatManager
 from models.langchain import get_global_app, set_global_app
-from models.model_parameters import ModelParameters # Keep for potential model selection logic in http_api
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -130,39 +129,45 @@ def chat_message():
             "message": f"An error occurred: {str(e)}"
         }), 500
 
-@app.route('/get_context_history', methods=['POST'])
-def get_context_history():
-    data = request.json
-    chat_id = data.get('chatId')
-
-    if not chat_id:
-        return jsonify({"status": "error", "message": "Chat ID is required."}), 400
-
+@app.route('/chat_context/<chat_id>', methods=['GET', 'POST'])
+def chat_context(chat_id):
+    """Manage chat context.
+    
+    GET: Get the chat context history
+    POST: Update the chat context
+    
+    Args:
+        chat_id: Unique chat identifier
+        
+    JSON Body (POST only):
+        context: List of messages to replace the current context
+        
+    Returns:
+        JSON with status and response
+    """
     try:
-        history = chat_manager.get_context_history(chat_id)
-        return jsonify({"status": "success", "history": history}), 200
+        if request.method == 'GET':
+            # Get chat context
+            history = chat_manager.get_context(chat_id)
+            return jsonify({"status": "success", "history": history}), 200
+
+        # POST request
+        data = request.json or {}
+        new_context = data.get('context')
+        
+        if not new_context:
+            return jsonify({"status": "error", "message": "Context is required"}), 400
+            
+        chat_manager.update_context(chat_id, new_context)
+        return jsonify({"status": "success", "message": "Chat context updated successfully"}), 200
+
+    except ValueError as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
     except Exception as e:
-        logging.exception(f"Error getting context history for chat {chat_id}:")
-        return jsonify({"status": "error", "message": f"An error occurred: {str(e)}"}), 500
+        logging.exception("Error in chat context endpoint:")
+        return jsonify({"status": "error", "message": f"An internal error occurred: {str(e)}"}), 500
 
-@app.route('/clear_context', methods=['POST'])
-def clear_context():
-    data = request.json
-    chat_id = data.get('chatId')
 
-    if not chat_id:
-        return jsonify({"status": "error", "message": "Chat ID is required."}), 400
-
-    try:
-        success, message = chat_manager.clear_context(chat_id)
-        if success:
-            return jsonify({"status": "success", "message": message}), 200
-        else:
-            return jsonify({"status": "error", "message": message}), 500
-    except Exception as e:
-        error_msg = f"An error occurred while clearing context: {str(e)}"
-        logging.exception(f"Error clearing context for chat {chat_id}:")
-        return jsonify({"status": "error", "message": error_msg}), 500
 
 @app.route('/delete_chat', methods=['POST'])
 def delete_chat():
@@ -181,6 +186,21 @@ def delete_chat():
     except Exception as e:
         logging.exception(f"Error deleting chat {chat_id}:")
         return jsonify({"status": "error", "message": f"An error occurred: {str(e)}"}), 500
+
+@app.route('/save_chat_context', methods=['POST'])
+def save_chat_context():
+    data = request.json
+    chat_id = data.get('chatId')
+    if not chat_id:
+        return jsonify({"status": "error", "message": "chatId is required."}), 400
+    try:
+        success, message = chat_manager.save_chat_context(chat_id)
+        if success:
+            return jsonify({"status": "success", "message": message}), 200
+        else:
+            return jsonify({"status": "error", "message": message}), 500
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 
