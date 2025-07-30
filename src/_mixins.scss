@@ -1,0 +1,23 @@
+@mixin flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto;
+}
+
+@mixin screen-sizing {
+  @media screen and (max-width: 800px) {
+    flex-direction: column;
+    @include flex-center;
+  }
+}
+
+@mixin button {
+  padding: 10px;
+  box-sizing: border-box;
+  font-size: 12pt;
+  border-bottom: 5px solid black;
+  border-right: 5px solid rgb(165, 165, 165);
+  border-radius: 5px;
+  cursor: pointer;
+}

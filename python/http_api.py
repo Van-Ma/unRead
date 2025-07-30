@@ -187,6 +187,7 @@ def delete_chat():
         logging.exception(f"Error deleting chat {chat_id}:")
         return jsonify({"status": "error", "message": f"An error occurred: {str(e)}"}), 500
 
+
 @app.route('/save_chat_context', methods=['POST'])
 def save_chat_context():
     data = request.json
@@ -201,7 +202,6 @@ def save_chat_context():
             return jsonify({"status": "error", "message": message}), 500
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
-
 
 
 
