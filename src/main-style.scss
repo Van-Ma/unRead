@@ -1,0 +1,70 @@
+@mixin flex-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+@mixin screen-sizing {
+    @media screen and (max-width: 800px) {
+        flex-direction: column;
+        @include flex-center;
+    }
+}
+
+
+.main-container {
+    @include flex-center;
+    flex-direction: row;
+    background: linear-gradient(to right, #230141, #59267e);
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
+}
+
+.landing-container,
+.landing-display {
+    width: 50%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.landing-container {
+    align-items: flex-start;
+    padding: 40px;
+}
+
+.landing-container h1,
+.landing-container p {
+    color: white;
+}
+
+.landing-buttons {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.main-container button {
+    border: 2px solid pink;
+    border-radius: 25px;
+    padding: 10px 20px;
+    font-size: 12pt;
+    background-color: transparent;
+    color: white;
+    cursor: pointer;
+}
+
+.landing-display {
+    align-items: center;
+    justify-content: center;
+}
+
+.landing-display img {
+    width: 80%;
+    max-width: 400px;
+    min-width: 400px;
+    height: auto;
+}
