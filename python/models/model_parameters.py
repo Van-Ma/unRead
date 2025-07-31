@@ -1,3 +1,5 @@
+# model_parameters.py
+
 from typing import List, Optional, TypedDict
 
 # Define a TypedDict for Hugging Face specific parameters
@@ -10,5 +12,4 @@ class ModelParameters(TypedDict):
     framework_type: str  # e.g., "LangChain"
     backend: str         # e.g., "HuggingFace", "vLLM", "OpenAI"
     model_version: str   # e.g., "Base", "RAG"
-    hf_params: Optional[HuggingFaceParameters] # Parameters specific to HuggingFace backend
-    # Add other backend parameters here as Optional fields in the future, e.g., vllm_params: Optional[VLLMParameters]
+    hf_params: Optional[HuggingFaceParameters]
