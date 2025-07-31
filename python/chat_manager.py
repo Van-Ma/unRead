@@ -63,3 +63,31 @@ class ChatManager:
         
         set_global_app(new_model_params)
         return True, message
+    
+    def save_chat_context(self, chat_id: str) -> tuple[bool, str]:
+        """
+        Manually flushes the current conversation state to the checkpointer database.
+        """
+        logging.info(f"Attempting to save context for chat_id: {chat_id}")
+        try:
+            current_app = get_global_app()
+
+            if not hasattr(current_app, 'checkpointer') or not current_app.checkpointer:
+                return False, "Persistence is disabled; the app has no checkpointer."
+
+            config = {"configurable": {"thread_id": chat_id}}
+            snapshot = current_app.get_state(config)
+
+            if not snapshot:
+                return False, f"No state found for chat_id: {chat_id}."
+
+            # Use the checkpointer's `put` method to explicitly save the snapshot.
+            current_app.checkpointer.put(config, snapshot.to_checkpoint())
+
+            success_msg = f"Successfully saved context for chat {chat_id}."
+            logging.info(success_msg)
+            return True, success_msg
+
+        except Exception as e:
+            logging.exception(f"An unexpected error occurred while saving context for {chat_id}: {e}")
+            return False, f"Failed to save context: {e}"
