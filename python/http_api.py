@@ -50,5 +50,23 @@ def delete_chat():
     success, message = chat_manager.delete_chat(chat_id)
     return jsonify({"status": "success", "message": message}) if success else jsonify({"status": "error", "message": message}), 500
 
+@app.route('/save_chat_context', methods=['POST'])
+def save_chat_context_endpoint():
+    """Manually triggers a save of the chat's context to the database."""
+    data = request.json
+    chat_id = data.get('chatId')
+    if not chat_id:
+        return jsonify({"status": "error", "message": "chatId is required."}), 400
+    
+    try:
+        success, message = chat_manager.save_chat_context(chat_id)
+        if success:
+            return jsonify({"status": "success", "message": message}), 200
+        else:
+            return jsonify({"status": "error", "message": message}), 500
+    except Exception as e:
+        logging.exception(f"API error in /save_chat_context for {chat_id}:")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
