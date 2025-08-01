@@ -2,58 +2,50 @@ import './dashboard.scss';
 import { useRef, useState } from "react";
 import Desktop from './Desktop';
 import Chat from './Chat';
+import { createFileObject } from './ContentFiles';
 
 function Dashboard({ section, onBack }) {
-
-    const [leftActive, setLeftActive] = useState(false);
     const [files, setFiles] = useState([]);
     const desktopRef = useRef(null);
     const trashRef = useRef(null);
 
 
 
-    const toggleLeftPanel = () => {
-        setLeftActive(prev => !prev);
-    };
-
-
     // Called when drop area clicked -> add a file
-    const handleDropAreaClick = () => {
-        addFile();
-    };
+const handleDropAreaClick = () => {
+    addFile();
+};
 
-    // Add a file with random position & cycling image
-    const addFile = () => {
-        const desktop = document.querySelector(".dashboard-desktop-inner");
-        if (!desktop) return;
+// Add a file with random position & cycling image
+const addFile = () => {
+    const desktop = document.querySelector(".dashboard-desktop-inner");
+    if (!desktop) return;
 
-        const desktopRect = desktop.getBoundingClientRect();
-        const iconSize = 50;
-        const maxX = desktopRect.width - iconSize;
-        const maxY = desktopRect.height - iconSize;
+    const desktopRect = desktop.getBoundingClientRect();
+    const iconSize = 50;
+    const maxX = desktopRect.width - iconSize;
+    const maxY = desktopRect.height - iconSize;
 
-        const fileImages = [
-            "file1.png",
-            "file2.png",
-            "file3.png",
-            "file4.png",
-            "file5.png"
-        ];
+    const fileImages = [
+        "file1.png",
+        "file2.png",
+        "file3.png",
+        "file4.png",
+        "file5.png"
+    ];
 
-        const img = fileImages[files.length % fileImages.length];
-        const randomX = Math.floor(Math.random() * maxX);
-        const randomY = Math.floor(Math.random() * maxY);
+    const randomX = Math.floor(Math.random() * maxX);
+    const randomY = Math.floor(Math.random() * maxY);
 
-        setFiles(prev => [
-            ...prev,
-            {
-                id: Date.now() + Math.random(),
-                image: img,
-                x: randomX,
-                y: randomY
-            }
-        ]);
-    };
+    const projectId = 'project-uuid-123'; 
+    const fileName = `Untitled-${files.length + 1}.txt`;
+
+    const newFile = createFileObject(projectId, fileName, '', fileImages);
+    newFile.x = randomX;
+    newFile.y = randomY;
+
+    setFiles(prev => [...prev, newFile]);
+};
 
     // ✅ This is the organize-to-grid logic
     const organizeFilesInGrid = () => {
@@ -61,8 +53,8 @@ function Dashboard({ section, onBack }) {
         if (!desktop) return;
 
         const iconSize = 50;
-        const padding = 10;
-        const gap = 20;
+        const padding = 20;
+        const gap = 50;
         const toolbarHeight = 100; // Add this!
 
         const desktopRect = desktop.getBoundingClientRect();
