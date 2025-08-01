@@ -1,5 +1,5 @@
 import './dashboard.scss';
-import React, { useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Desktop from "./Desktop";
 
 function Dashboard({ section, onBack }) {

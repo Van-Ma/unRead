@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import './chat.scss';
 
@@ -18,7 +18,7 @@ export default function Chat() {
 
   const createChat = async () => {
     try {
-      const res = await axios.post(`${API_BASE}/create_chat`, {
+      const res = await axios.post(${API_BASE}/create_chat, {
         modelParameters: {
           framework_type: "LangChain",
           backend: "HuggingFace",
@@ -45,7 +45,7 @@ export default function Chat() {
     setLoading(true);
 
     try {
-      const res = await axios.post(`${API_BASE}/chat`, {
+      const res = await axios.post(${API_BASE}/chat, {
         chatId,
         message: input,
       });
@@ -82,7 +82,7 @@ export default function Chat() {
     <>
       <div className="dashboard-chatoutput">
         {messages.map((msg, idx) => (
-          <div key={idx} className={`chat-message ${msg.role}`}>
+          <div key={idx} className={chat-message ${msg.role}}>
             <strong>{msg.role === "user" ? "You" : msg.role === "assistant" ? "AI" : "System"}:</strong> {msg.content}
           </div>
         ))}
