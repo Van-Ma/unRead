@@ -9,6 +9,7 @@ import logging
 from chat_manager import ChatManager
 from models.model_parameters import ModelParameters
 
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - [%(name)s] - %(message)s',
@@ -18,7 +19,6 @@ logging.basicConfig(
 app = Flask(__name__)
 CORS(app)
 chat_manager = ChatManager()
-print("test! test!")
 
 @app.route('/create_chat', methods=['POST'])
 def create_chat():

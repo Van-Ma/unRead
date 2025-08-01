@@ -12,12 +12,8 @@ from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
 class ChatManager:
     def create_chat(self, model_params: ModelParameters) -> tuple[str, str]:
-        # debug_log("Entered create_chat in ChatManager.")
-        print("called create chat", flush = True)
         chat_id = str(uuid.uuid4())
-        print("trying to set gloval app1", flush = True)
         if _current_model_params is None or _current_model_params != model_params:
-            print("trying to set gloval app2", flush = True)
             set_global_app(model_params)
         return chat_id, f"Chat {chat_id} ready."
 
@@ -47,7 +43,7 @@ class ChatManager:
             return True, f"Chat {chat_id} has been reset."
         except Exception as e:
             return False, f"Failed to reset chat {chat_id}: {e}"
-            
+ 
     def save_chat_context(self, chat_id: str) -> tuple[bool, str]:
         try:
             current_app = get_global_app()

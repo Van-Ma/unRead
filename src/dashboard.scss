@@ -1,546 +1,331 @@
-  body {
+@import 'mixins';
 
-    height: 99.5vh;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    background-color: rgb(52, 52, 52);
-    border: 2px solid grey;
+.dashboard-nav-btns {
+  @include flex-center;
+  justify-content: flex-start;
+  background-color: rgb(63, 63, 63);
+  gap: 20px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+#back-btn,
+#forward-btn {
+  @include button;
+  background: none;
+  border: none;
+
+& img{
+ width: 35px; 
+}
+
+}
+
+
+
+/*------------------------*/
+.dashboard-layout {
+  display: flex;
+  flex-direction: row;
+  width: 95%;
+  height: 80vh;
+  gap: 2%;
+  margin: 0 auto;
+  position: relative;
+}
+
+.dashboard-content-layout{
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 80vh;
+  gap: 2%;
+  margin: 0 auto;
+  position: relative;
+}
+
+.dashboard-left {
+  @include flex-center;
+  flex-direction: column;
+  flex: 0 0 50%;
+  min-width: 300px;
+  height: 100%;
+  gap: 2vh;
+  transition: transform 0.3s ease;
+  font-family: monospace;
+  font-size: 12pt;
+}
+
+.dashboard-right {
+  border-right: 5px solid grey;
+  background-color: white;
+  flex: 1; // This will automatically take remaining space (~50%)
+  height: 100%;
+  transition: margin-left 0.3s ease;
+}
+
+/*------------------------*/
+.desktop-tools {
+  @include flex-center;
+  position: relative;
+  justify-content: flex-start;
+  width: 100%;
+  background-color: rgb(31, 31, 31);
+  height: 60px;
+  padding: 10px;
+  box-sizing: border-box;
+  border: 5px solid rgb(31, 31, 31);
+  border-bottom: 5px solid black;
+  gap: 20px;
+  z-index: 10;
+  padding-left: 30px;
+}
+
+#organize-btn, #add-btn, #trash-btn{
+  background: none;
+  border: none;
+  cursor: pointer;
+  
+
+& img{
+  height: 40px;
+}
+
+&:hover {
+    animation: shake-slight 0.4s infinite;
   }
 
+}
 
-  #logoimg {
-    width: auto;
-    height: 80%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-left: 5px;
-    margin-bottom: 3px;
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2%;
+  height: 100%;
+    flex: 0 0 22%;
+}
+
+.dashboard-desktop {
+  @include border-style;
+  flex-grow: 1; 
+  overflow: hidden;
+  position: relative;
+  background-color: rgb(67, 67, 67);
+
+}
+
+/*------------------------*/
+
+
+.dashboard-droparea {
+  @include flex-center;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+  height: 15%;
+  cursor: pointer;
+  overflow: hidden;
+  max-width: 500px;
+}
+
+#brain-logo {
+  @include flex-center;
+  width: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  opacity: 1;
+  object-fit: contain;
+  box-sizing: border-box;
+  margin: 0 auto;
+}
+
+.dashboard-fileoutput {
+  @include border-style;
+  background-color: rgb(237, 237, 237);
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.file-output-header {
+  display: flex;
+  justify-content: space-between; 
+  align-items: center;
+  border-bottom: 5px solid black;
+  color: white;
+  background-color: blue;
+  width: 100%;
+  height: 45px;
+  box-sizing: border-box;
+  padding: 0; 
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.file-output-header p {
+  margin: 0 20px 0 20px; 
+  font-size: 14px;
+}
+
+#file-exit-btn {
+  @include button;
+  @include flex-center;
+  height: 30px;
+  width: 30px;
+  cursor: pointer;
+  margin-right: 20px; 
+}
+
+.desktop-images{
+  width: 40px; 
+  height: 50px;
+  cursor: grab;
+  z-index: 10000;
+}
+/*------------------------*/
+
+
+
+@keyframes shake-slight {
+  0%   { transform: translate(0, 0) rotate(0deg); }
+  25%  { transform: translate(1px, 0) rotate(10deg); }
+  100% { transform: translate(0, -1px) rotate(0deg); }
+}
+
+@media (max-width: 700px) {
+ .dashboard-left {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 300px;
+  height: 100%;
+  background-color: rgb(52, 52, 52);
+  box-shadow: -4px 0 8px rgba(0, 0, 0, 0.707), 0 4px 8px rgba(0, 0, 0, 0.772);
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  z-index: 1000;
+  cursor: pointer;
+
+  & > * {
+    display: none !important; // hide content by default
   }
 
-  .workbench-container {
-    display: flex;
-    flex-direction: row;
-  }
-
-  .workbench-nav,
-  .workbench-tab {
-    width: 40px;
-    background-color: rgb(52, 52, 52);
+  &::before {
+    @include flex-center;
+    content: '📁';
     position: absolute;
-    height: 100vh;
-    border-right: 2px solid grey;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
-    gap: 50px;
-    padding-top: 30px;
-
-  }
-
-  .workbench-nav {
-    z-index: 99;
-  }
-
-  /* Slide in from the left */
-  @keyframes slideInFromLeft {
-    from {
-      left: -200px;
-    }
-
-    to {
-      left: 43px;
-    }
-  }
-
-  /* Slide out to the left */
-  @keyframes slideOutToLeft {
-    from {
-      left: 43px;
-    }
-
-    to {
-      left: -200px;
-    }
-  }
-
-  .workbench-tab {
-    position: absolute;
-    top: 0;
-    left: -200px;
-    width: 300px;
-    height: 100vh;
-    background-color: rgb(68, 68, 68);
-    z-index: 98;
-    display: none;
+    top: 50px;
+    right: -70px;      
+    width: 70px;
+    height: 80px;
+    background-color: blue;
     color: white;
-    padding: 35px 20px;
-  }
-
-  /* Animation classes */
-  .workbench-tab.animate-in {
-    display: block;
-    animation: slideInFromLeft 0.005s forwards;
-  }
-
-  .workbench-tab.animate-out {
-    animation: slideOutToLeft 0.005s forwards;
-  }
-
-  .icon-tooltip {
-    position: relative;
-    display: flex;
-    justify-content: center;
-    width: 100%;
-  }
-
-  .icon-tooltip svg {
-    width: 60%;
-    height: auto;
+    font-weight: bold;
+    font-size: 45px;
+    line-height: 80px;
+    text-align: center;
+    border-top-right-radius: 15px;
+    border-bottom-right-radius: 15px;
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.15);
     cursor: pointer;
+    user-select: none;
+    pointer-events: auto;
+    transition: background 0.3s ease;
+
+    &:hover {
+      background: linear-gradient(135deg, #77b9ff, #2d74d9);
+    }
   }
 
-  .tooltip-text {
-    position: absolute;
-    left: 60px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: #dcedff;
-    border: 1px solid #007bff;
-    color: #007bff;
-    padding: 5px 10px;
-    white-space: nowrap;
-    border-radius: 4px;
-    font-size: 12px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-    z-index: 999;
+  &.active {
+    transform: translateX(0);
+
+    & > * {
+      display: block !important; // show content when active
+    }
+    // **Keep the tab visible and sticking out even when active**
+    &::before {
+      display: flex;
+      // stays right: -70px so it still sticks out
+    }
   }
 
-  .icon-tooltip:hover .tooltip-text {
-    opacity: 1;
-  }
-
-  #file-btn,
-  #chat-btn {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: none;
-    border: none;
-    color: white;
-    cursor: pointer;
-    padding: 10px;
-  }
-
-  #file-btn:hover,
-  #chat-btn:hover,
-  #file-btn.active,
-  #chat-btn.active {
-    background-color: rgb(84, 84, 84);
-    box-sizing: border-box;
-    border-radius: 5px;
-  }
-
-  #file-menu {
-    padding: 5px 7px;
-    color: white;
-    border-bottom: 2px solid grey;
-    flex-direction: row;
-    display: flex;
-    justify-content: left;
-    align-items: center;
-    gap: 20px;
-    height: 30px;
-  }
-
-  #file-submenu,
-  #chat-submenu {
-    display: none;
-    position: absolute;
-    background-color: rgb(57, 57, 57);
-    width: 180px;
-    left: 65px;
-    border-radius: 0px 0px 10px 10px;
-    box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.3);
-    z-index: 1000;
-    border-right: 2px solid grey;
-    border-bottom: 2px solid grey;
-    border-left: 2px solid grey;
-    font-size: 8pt;
-    text-wrap: nowrap;
-    font-family: 'Arial';
-  }
-
-  #chat-submenu {
-    left: 125px;
-  }
-
-  .menu-item {
-    padding: 10px 25px;
-    cursor: pointer;
-    width: 100%;
-    box-sizing: border-box;
-    color: white;
-  }
-
-  .menu-item:hover {
-    background-color: #f0f0f0;
-    color: black;
-  }
-
-  #close-tab-btn:hover {
-    background-color: #f0f0f0;
-    border-radius: 0px 0px 10px 10px;
 
   }
 
-  .page-layout {
-    display: flex;
-    height: 90vh;
-    width: 90vw;
+  
+  .dashboard-left.open {
+    transform: translateX(0);
+    /* visible */
+  }
+
+  .dashboard-right {
     margin: 0 auto;
-    gap: 10px;
-    padding: 10px;
-    box-sizing: border-box;
+    flex: none;
+    width: 90%;
+    height: 60vh;
+    max-width: 700px;
   }
 
-  .file-container,
-  .manage-context-container {
-    flex: 1 1 50%;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    background: rgb(238, 238, 238);
-    padding: 10px;
-    box-sizing: border-box;
-    overflow: hidden;
-    position: relative;
-    /* make it the positioning context */
-  }
+    .dashboard-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
 
-  #context-project-name {
-    width: 80%;
-    margin: 50px auto;
-  }
+.dashboard-droparea{
+  display: none;
+}
+  .desktop-tools {
+  width: 100%;
 
-  .file-item {
-    display: flex;
-    align-items: center;
-    margin-bottom: 8px;
-  }
+}
+
+.dashboard-desktop {
+width: 90%;
+height: 25vh;
+margin: 0 auto;
+}
 
 
-  .edit-context-btn:hover,
-  .trash-btn:hover {
-    color: rgb(0, 66, 199);
-  }
+}
 
-  .context-container {
-    margin: 60px auto 50px;
-    overflow: auto;
-    width: 80%;
+@media (min-width: 701px) and (max-width: 1000px){
+  .dashboard-content-layout{
+  display: flex;
+  flex-direction: row;
+  width: 90%;
+  height: 60vh;
+  gap: 2%;
+  margin: 0 auto;
+  position: relative;
+}
+  
+  .dashboard-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
 
-  }
-
-  .context-container input[type="checkbox"] {
-    margin-right: 30px;
-    cursor: pointer;
-    display: none;
-    width: 20px;
-    height: 20px;
-  }
-
-  .context-container.show-checkboxes input[type="checkbox"] {
-    display: inline-block;
-  }
-
-  .context-container label {
-    display: block;
-    margin-bottom: 10px;
-    font-size: 1vw;
-  }
-
-
-  /* Edit button - top right */
-  .edit-context-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-
-    background-color: transparent;
-    border: none;
-    font-weight: bold;
-    font-size: 12pt;
-    cursor: pointer;
-    padding: 10px 20px;
-    padding-left: 90%;
-    background: rgb(238, 238, 238);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  /* Trash button - bottom left */
-  .trash-btn {
-    position: absolute;
-    bottom: 10px;
-    left: 0px;
-    background-color: transparent;
-    border: none;
-    font-weight: bold;
-    font-size: 12pt;
-    cursor: pointer;
-    padding: 20px 20px;
-    padding-right: 90%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: rgb(238, 238, 238);
+  
+  .dashboard-container{
+    @include flex-center;
     width: 100%;
   }
 
-
-
-  #tab-bar {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 10px;
-    flex-shrink: 0;
-  }
-
-  /* Tabs */
-  .tab {
-    padding: 6px 12px;
-    border: 1px solid #888;
-    border-bottom: none;
-    cursor: pointer;
-    background: #ddd;
-    border-radius: 6px 6px 0 0;
-    user-select: none;
-    font-family: 'Arial';
-    position: relative;
-    font-size: 10pt;
-  }
-
-  .tab.active {
-    background: #dcedff;
-    border-color: #007bff;
-    color: #007bff;
-    font-weight: bold;
-  }
-
-  .tab .close-btn {
-    position: absolute;
-    right: 4px;
-    top: 2px;
-    cursor: pointer;
-    color: #555;
-    font-weight: bold;
-    user-select: none;
-    font-size: 12pt;
-  }
-
-  #drop-area {
-    height: 100px;
-    padding: 20px;
-    text-align: center;
-    margin-bottom: 10px;
-    cursor: pointer;
-    user-select: none;
-    border-radius: 6px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    background-color: white;
-    justify-content: center;
-    border: 1px solid #ccc;
-
-  }
-
-  #drop-area.dragover {
-    background-color: #eef;
-  }
-
-  #file-content {
-    flex-grow: 1;
-    white-space: pre-wrap;
-    border: 1px solid #ccc;
-    padding: 20px;
-    overflow-y: auto;
-    background: white;
-    border-radius: 6px;
-  }
-
-  /* Right half - chat container */
-  .chat-container {
-    flex: 1 1 50%;
-    display: flex;
-    flex-direction: column;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    background: rgb(238, 238, 238);
-    padding: 10px;
-    box-sizing: border-box;
-    overflow: hidden;
-    font-family: 'Arial';
-  }
-
-  .chat-container h2 {
-    font-size: 12pt;
-    margin-left: 8px;
-  }
-
-  #chat-output {
-    flex-grow: 1;
-    border: 1px solid #ccc;
-    padding: 10px;
-    overflow-y: auto;
-    margin-bottom: 10px;
-    background: white;
-    border-radius: 6px;
-    font-size: 0.95rem;
-  }
-
-  #chat-output .user,
-  #chat-output .bot {
-    margin-bottom: 10px;
-    padding: 5px;
-    border-radius: 15px;
-    max-width: 90%;
-    word-wrap: break-word;
-    line-height: 2;
-    font-size: 12pt;
-    max-width: 50%;
-
-  }
-
-  #chat-output .user {
-    background: #dcedff;
-    border-color: #007bff;
-    color: #007bff;
-    align-self: flex-end;
-    margin-left: auto;
-  }
-
-  #chat-output .bot {
-    color: black;
-    align-self: flex-start;
-    margin-right: auto;
-    text-align: left;
-  }
-
-  .loader-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    margin: 20px 0;
-    user-select: none;
-  }
-
-  .spinner {
-    border: 6px solid #f3f3f3;
-    /* Light gray */
-    border-top: 6px solid #007bff;
-    /* Blue */
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    animation: spin 1s linear infinite;
-    margin-bottom: 8px;
-  }
-
-  .loading-text {
-    font-size: 10pt;
-    color: #007bff;
-    font-weight: 600;
-    text-align: center;
-  }
-
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-
-    100% {
-      transform: rotate(360deg);
-    }
-  }
-
-  #chat-controls {
-    display: flex;
-    gap: 0px;
-    width: 100%;
-    box-sizing: border-box;
-    margin-bottom: 80px;
-  }
-
-  #ai-input {
-    flex-grow: 1;
-    padding: 8px;
-    font-size: 1rem;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    margin-bottom: 0;
-  }
-
-  #ai-send {
-    background: none;
-    border: none;
-    cursor: pointer;
-    flex-grow: 0;
-    flex-shrink: 0;
-    margin-bottom: 0;
-    width: 40px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0;
-  }
-
-  .model-container {
-    font-family: monospace;
-    font-weight: bold;
-  }
-
-  #model-select {
-    background: #dcedff;
-    border-color: #007bff;
-    color: #007bff;
-    font-family: monospace;
-    padding: 5px;
-    border-radius: 5px;
-    width: 80%;
-    cursor: pointer;
-  }
-
-  .footer-container {
-    border-top: 2px solid grey;
-    background-color: rgb(52, 52, 52);
-    height: 30px;
-    width: 100%;
-    bottom: 0;
-    position: absolute;
-    display: flex;
-    justify-content: left;
-    align-items: center;
-    padding: 5px 15px;
-    box-sizing: border-box;
-    z-index: 99;
-  }
-
-  .footer-container img {
-    width: auto;
+  .dashboard-fileoutput{
     height: 100%;
   }
 
-  #chat-id {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    color: white;
-    width: 100%;
-  }
+.dashboard-droparea{
+  display: none;
+}
+
+.dashboard-desktop {
+ width: 90%;
+ height: 25vh;
+}
+
+
+  
+}

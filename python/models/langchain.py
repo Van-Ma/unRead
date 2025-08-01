@@ -25,7 +25,6 @@ from models.kv_cache_hf_model import KVCacheHFModel
 from vectorstore_manager import get_vectorstore_for_chat
 from models.model_cache import GLOBAL_HF_MODEL_CACHE
 
-
 # --- State & Globals ---
 class ChatState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], lambda x, y: x + y]
@@ -133,7 +132,6 @@ class LangChainRAG(LangChainBase):
         super().__init__(model_params=model_params, **kwargs)
         if model_params["model_version"] != "RAG": raise ValueError("Invalid model_version for LangChainRAG.")
         self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-
     def _add_documents_node(self, state: ChatState) -> Dict[str, Any]:
         chat_id = state["chat_id"]
         files = state.get("file_contents", [])

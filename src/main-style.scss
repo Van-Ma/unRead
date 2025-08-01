@@ -1,16 +1,4 @@
-@mixin flex-center {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-@mixin screen-sizing {
-    @media screen and (max-width: 800px) {
-        flex-direction: column;
-        @include flex-center;
-    }
-}
-
+@import 'mixins';
 
 .main-container {
     @include flex-center;
@@ -67,4 +55,42 @@
     max-width: 400px;
     min-width: 400px;
     height: auto;
+}
+
+/*------------------------------------Project Selection Pages------------*/
+
+.new-project-container{
+    @include flex-center;
+    flex-direction: column;
+    background-color: rgb(45, 45, 45);
+    width: 70%;
+    padding: 50px;
+    box-sizing: border-box;
+    margin-top: 5%;
+}
+
+.new-project-name{
+    @include flex-center;
+    padding: 5px;
+    width: 100%;
+    gap: 20px;
+    color: white;
+    font-size: 16pt;
+}
+
+.new-project-name input{
+    font-size: 12pt;
+    width: 50%;
+}
+
+.new-project-btns{
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+}
+
+#monkey-icon{
+    @include flex-center;
+    margin: 100px auto;
+    width: 30%;
 }
