@@ -1,13 +1,33 @@
-flask
-flask-cors
-torch
-transformers
+# requirements.txt
+
+# Core ML/DL Framework
 accelerate
-sentencepiece
+torch
+
+# Hugging Face ecosystem for models and tokenizers
+transformers
+sentence-transformers
+
+# LangChain and LangGraph ecosystem
 langchain
 langchain-core
-langchain-huggingface
-faiss-cpu
-langgraph
 langchain-community
-sentence-transformers
+langchain-huggingface
+langgraph
+langgraph-checkpoint-postgres
+psycopg[binary,pool]
+
+# Vector Store (in-memory)
+faiss-cpu
+
+# Web API Server
+flask
+flask-cors
+python-dotenv
+requests
+
+# PostgreSQL Database Connector for LangGraph Checkpointer
+psycopg-binary
+
+# SentencePiece is a dependency for many tokenizers
+sentencepiece
