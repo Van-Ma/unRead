@@ -4,7 +4,7 @@
   @include flex-center;
   justify-content: flex-start;
   background-color: rgb(63, 63, 63);
-  gap: 10px;
+  gap: 20px;
   padding: 20px;
   margin-bottom: 20px;
 }
@@ -12,11 +12,15 @@
 #back-btn,
 #forward-btn {
   @include button;
+  background: none;
+  border: none;
+
+& img{
+ width: 35px; 
 }
 
-#forward-btn {
-  background-color: grey;
 }
+
 
 
 /*------------------------*/
@@ -39,66 +43,6 @@
   margin: 0 auto;
   position: relative;
 }
-.dashboard-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-    flex: 0 0 20%;
-}
-
-
-.dashboard-desktop {
-  flex-grow: 1; /* takes remaining space */
-  overflow: hidden;
-  position: relative;
-  background-color: rgb(67, 67, 67);
-  border: 5px dashed grey;
-}
-
-/*------------------------*/
-.desktop-tools {
-  @include flex-center;
-  justify-content: flex-start;
-  width: 100%;
-  background-color: rgb(31, 31, 31);
-  height: 60px;
-  padding: 15px;
-  box-sizing: border-box;
-  border: 5px solid rgb(31, 31, 31);
-  gap: 20px;
-}
-
-#organize-btn img{
-  width: 40px;
-  
-}
-#organize-btn{
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-#organize-btn:hover, #trash-btn:hover{
-   &:hover {
-    animation: shake-slight 0.4s infinite;
-  }
-}
-
-#trash-btn{
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
-#trash-btn img{
-  width: 35px;
-}
-
-
-@keyframes shake-slight {
-  0%   { transform: translate(0, 0) rotate(0deg); }
-  25%  { transform: translate(1px, 0) rotate(10deg); }
-  100% { transform: translate(0, -1px) rotate(0deg); }
-}
 
 .dashboard-left {
   @include flex-center;
@@ -120,8 +64,135 @@
   transition: margin-left 0.3s ease;
 }
 
-/* Responsive below 700px */
-@media (max-width: 800px) {
+/*------------------------*/
+.desktop-tools {
+  @include flex-center;
+  position: relative;
+  justify-content: flex-start;
+  width: 100%;
+  background-color: rgb(31, 31, 31);
+  height: 60px;
+  padding: 10px;
+  box-sizing: border-box;
+  border: 5px solid rgb(31, 31, 31);
+  border-bottom: 5px solid black;
+  gap: 20px;
+  z-index: 10;
+  padding-left: 30px;
+}
+
+#organize-btn, #add-btn, #trash-btn{
+  background: none;
+  border: none;
+  cursor: pointer;
+  
+
+& img{
+  height: 40px;
+}
+
+&:hover {
+    animation: shake-slight 0.4s infinite;
+  }
+
+}
+
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2%;
+  height: 100%;
+    flex: 0 0 22%;
+}
+
+.dashboard-desktop {
+  @include border-style;
+  flex-grow: 1; 
+  overflow: hidden;
+  position: relative;
+  background-color: rgb(67, 67, 67);
+
+}
+
+/*------------------------*/
+
+
+.dashboard-droparea {
+  @include flex-center;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+  height: 15%;
+  cursor: pointer;
+  overflow: hidden;
+  max-width: 500px;
+}
+
+#brain-logo {
+  @include flex-center;
+  width: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  opacity: 1;
+  object-fit: contain;
+  box-sizing: border-box;
+  margin: 0 auto;
+}
+
+.dashboard-fileoutput {
+  @include border-style;
+  background-color: rgb(237, 237, 237);
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.file-output-header {
+  display: flex;
+  justify-content: space-between; 
+  align-items: center;
+  border-bottom: 5px solid black;
+  color: white;
+  background-color: blue;
+  width: 100%;
+  height: 45px;
+  box-sizing: border-box;
+  padding: 0; 
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.file-output-header p {
+  margin: 0 20px 0 20px; 
+  font-size: 14px;
+}
+
+#file-exit-btn {
+  @include button;
+  @include flex-center;
+  height: 30px;
+  width: 30px;
+  cursor: pointer;
+  margin-right: 20px; 
+}
+
+.desktop-images{
+  width: 40px; 
+  height: 50px;
+  cursor: grab;
+  z-index: 10000;
+}
+/*------------------------*/
+
+
+
+@keyframes shake-slight {
+  0%   { transform: translate(0, 0) rotate(0deg); }
+  25%  { transform: translate(1px, 0) rotate(10deg); }
+  100% { transform: translate(0, -1px) rotate(0deg); }
+}
+
+@media (max-width: 700px) {
  .dashboard-left {
   position: absolute;
   top: 0;
@@ -180,15 +251,8 @@
   }
 
 
-    .dashboard-droparea,
-    .dashboard-fileoutput {
-      border: none;
-      border-radius: 0px;
-      width: 100%;
-    }
-
-
   }
+
   
   .dashboard-left.open {
     transform: translateX(0);
@@ -198,31 +262,35 @@
   .dashboard-right {
     margin: 0 auto;
     flex: none;
-    width: 80%;
+    width: 90%;
     height: 60vh;
     max-width: 700px;
   }
 
     .dashboard-layout {
   display: flex;
-  flex-direction: column-reverse;
+  flex-direction: column;
+  width: 100%;
 }
 
-
+.dashboard-droparea{
+  display: none;
+}
   .desktop-tools {
-  width: 80%;
+  width: 100%;
 
 }
 
 .dashboard-desktop {
-width: 80%;
+width: 90%;
+height: 25vh;
 margin: 0 auto;
 }
 
 
 }
 
-@media (min-width: 800px) and (max-width: 1000px){
+@media (min-width: 701px) and (max-width: 1000px){
   .dashboard-content-layout{
   display: flex;
   flex-direction: row;
@@ -235,159 +303,29 @@ margin: 0 auto;
   
   .dashboard-layout {
   display: flex;
-  flex-direction: column-reverse;
+  flex-direction: column;
+  height: 100vh;
 }
 
   
   .dashboard-container{
-    width: 90%;
-    height: 40vh;
+    @include flex-center;
+    width: 100%;
   }
 
-
-  .dashboard-right{
-    margin-right: 0px;
+  .dashboard-fileoutput{
+    height: 100%;
   }
 
-.desktop-tools {
-  margin-left: 5%;
-
+.dashboard-droparea{
+  display: none;
 }
 
 .dashboard-desktop {
- margin-left: 5%;
- width: 100%;
+ width: 90%;
+ height: 25vh;
 }
 
 
   
 }
-
-
-
-/*------------------------*/
-
-
-.dashboard-droparea {
-  @include border-style;
-  @include flex-center;
-  flex-direction: column;
-  position: relative;
-  color: rgb(196, 196, 196);
-  background-color: rgb(43, 43, 43);
-  width: 100%;
-  height: 30vh;
-  border-radius: 25px;
-  cursor: pointer;
-  overflow: hidden;
-  max-width: 500px;
-}
-
-.dashboard-droparea:hover {
-  background-color: rgb(64, 64, 64);
-}
-
-.dashboard-droparea p {
-  text-align: center;
-  margin-bottom: 50px;
-}
-
-
-#brain-logo {
-  @include flex-center;
-  width: 50%;
-  max-width: 50%;
-  max-height: 50%;
-  opacity: 1;
-  border: 5px dashed grey;
-  object-fit: contain;
-  box-sizing: border-box;
-  margin: 0 auto;
-}
-
-.dashboard-fileoutput {
-  @include border-style;
-  background-color: rgb(237, 237, 237);
-  width: 100%;
-  height: 68vh;
-  position: relative;
-}
-
-.file-output-header {
-  display: flex;
-  justify-content: space-between; /* push p left and button right */
-  align-items: center;
-  border-bottom: 5px solid black;
-  color: white;
-  background-color: blue;
-  width: 100%;
-  height: 45px;
-  box-sizing: border-box;
-  padding: 0; 
-  padding-top: 5px;
-  padding-bottom: 5px;/* remove horizontal padding */
-}
-
-.file-output-header p {
-  margin: 0 20px 0 20px; /* margin-right to separate from button */
-  font-size: 14px;
-}
-
-#file-exit-btn {
-  @include button;
-  @include flex-center;
-  height: 30px;
-  width: 30px;
-  cursor: pointer;
-  margin-right: 20px; /* same padding space */
-}
-
-.desktop-images{
-  width: 40px; 
-  height: 50px;
-  cursor: grab;
-}
-/*------------------------*/
-
-.dashboard-chatoutput {
-  width: 100%;
-  height: 70%;
-}
-
-.dashboard-controls {
-  border-bottom: 5px solid black;
-  @include flex-center;
-  width: 100%;
-  height: 30%;
-  padding-bottom: 20%;
-  box-sizing: border-box;
-}
-
-#chat-inputbox {
-  @include border-style;
-  width: 70%;
-  min-height: 40px;
-  max-height: 400px;
-  border-radius: 10px;
-  padding: 15px;
-  font-size: 12pt;
-  box-sizing: border-box;
-  overflow-y: auto;
-  resize: none;
-  line-height: 1.5;
-  scrollbar-width: none;
-  /* Firefox */
-  -ms-overflow-style: none;
-  /* IE 10+ */
-}
-
-#chat-inputbox::-webkit-scrollbar {
-  display: none;
-  /* Chrome, Safari, Edge */
-}
-
-#chat-send-btn {}
-
-
-
-/*------------------------*/
