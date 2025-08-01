@@ -14,6 +14,8 @@ langchain-core
 langchain-community
 langchain-huggingface
 langgraph
+langgraph-checkpoint-postgres
+psycopg[binary,pool]
 
 # Vector Store (in-memory)
 faiss-cpu
@@ -21,6 +23,8 @@ faiss-cpu
 # Web API Server
 flask
 flask-cors
+python-dotenv
+requests
 
 # PostgreSQL Database Connector for LangGraph Checkpointer
 psycopg-binary
