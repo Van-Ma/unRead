@@ -43,6 +43,19 @@ class ChatManager:
             return True, f"Chat {chat_id} has been reset."
         except Exception as e:
             return False, f"Failed to reset chat {chat_id}: {e}"
+ 
+    def save_chat_context(self, chat_id: str) -> tuple[bool, str]:
+        try:
+            current_app = get_global_app()
+            if not hasattr(current_app, 'checkpointer') or not current_app.checkpointer:
+                return False, "Persistence is disabled; the app has no checkpointer."
+            config = {"configurable": {"thread_id": chat_id}}
+            snapshot = current_app.get_state(config)
+            if not snapshot: return False, f"No state found for chat_id: {chat_id}."
+            current_app.checkpointer.put(config, snapshot.to_checkpoint())
+            return True, f"Successfully saved context for chat {chat_id}."
+        except Exception as e:
+            return False, f"Failed to save context: {e}"
 
     def change_global_model(self, new_model_params: ModelParameters) -> tuple[bool, str]:
         old_params = _current_model_params
@@ -50,44 +63,15 @@ class ChatManager:
 
         old_version = old_params.get("model_version", "N/A") if old_params else "N/A"
         new_version = new_model_params.get("model_version")
-
+        
         message = ""
         if old_version != new_version:
             message = f"Switching from '{old_version}' to '{new_version}'. All conversation histories and RAG documents will be wiped."
             reset_all_vector_stores()
             reset_all_kv_caches()
-            # Wiping checkpointer history is best done by just starting new chat_ids
         else:
             message = f"Changing underlying model within version '{new_version}'. Chat histories will be preserved, but KV cache will be reset."
             reset_all_kv_caches()
         
         set_global_app(new_model_params)
         return True, message
-    
-    def save_chat_context(self, chat_id: str) -> tuple[bool, str]:
-        """
-        Manually flushes the current conversation state to the checkpointer database.
-        """
-        logging.info(f"Attempting to save context for chat_id: {chat_id}")
-        try:
-            current_app = get_global_app()
-
-            if not hasattr(current_app, 'checkpointer') or not current_app.checkpointer:
-                return False, "Persistence is disabled; the app has no checkpointer."
-
-            config = {"configurable": {"thread_id": chat_id}}
-            snapshot = current_app.get_state(config)
-
-            if not snapshot:
-                return False, f"No state found for chat_id: {chat_id}."
-
-            # Use the checkpointer's `put` method to explicitly save the snapshot.
-            current_app.checkpointer.put(config, snapshot.to_checkpoint())
-
-            success_msg = f"Successfully saved context for chat {chat_id}."
-            logging.info(success_msg)
-            return True, success_msg
-
-        except Exception as e:
-            logging.exception(f"An unexpected error occurred while saving context for {chat_id}: {e}")
-            return False, f"Failed to save context: {e}"

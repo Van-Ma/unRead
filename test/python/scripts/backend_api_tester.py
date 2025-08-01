@@ -27,11 +27,14 @@ def create_chat(base_url: str, model_parameters: Dict[str, Any]) -> str:
     payload = {"modelParameters": model_parameters}
     try:
         url = f"{base_url}{ENDPOINTS['create_chat']}"
-        response = requests.post(url, json=payload, timeout=30)
-        response.raise_for_status()  # Raise an exception for bad status codes
-        chat_id = response.json().get("chatId")
-        print(f"<-- Success. Chat ID: {chat_id}")
-        return chat_id
+        response = requests.post(url, json=payload, timeout=30000)
+        if response.status_code == 200:
+            chat_id = response.json().get("chatId")
+            print(f"<-- Success. Chat ID = {chat_id}")
+            return chat_id
+        else:
+            print(f"<-- Error ({response.status_code}): {response.text}")
+            return None
     except requests.exceptions.RequestException as e:
         print(f"<-- API Connection Error: {e}")
         return None

@@ -1,8 +1,9 @@
-# kv_cache_hf_model.py
+# python/kv_cache_hf_model.py
 
 import logging
-from typing import Any, Optional, List, Tuple, Dict
+import os
 import torch
+from typing import Any, Optional, List, Tuple, Dict
 from langchain_core.language_models.llms import LLM
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
@@ -13,7 +14,7 @@ from models.model_cache import GLOBAL_HF_MODEL_CACHE
 KV_CACHES: Dict[str, Tuple] = {}
 
 def reset_all_kv_caches():
-    """Clears the KV cache for all conversations."""
+    """Clears the KV cache for all conversations. Called when the underlying model changes."""
     global KV_CACHES
     KV_CACHES = {}
     logging.info("All KV Caches have been reset.")
@@ -35,17 +36,31 @@ class KVCacheHFModel(LLM):
         self._load_model()
 
     def _load_model(self):
+        """Loads model and tokenizer with authentication."""
+        # Read the token from the environment
+        hf_token = os.getenv("HF_TOKEN")
+
         if self.model_name in GLOBAL_HF_MODEL_CACHE:
+            logging.info(f"Using cached model for '{self.model_name}'.")
             cached = GLOBAL_HF_MODEL_CACHE[self.model_name]
             self.model, self.tokenizer = cached['model'], cached['tokenizer']
         else:
+            logging.info(f"Loading model '{self.model_name}' (not in cache)...")
             device = "cuda" if torch.cuda.is_available() else "cpu"
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-            self.model = AutoModelForCausalLM.from_pretrained(self.model_name, torch_dtype=torch.bfloat16).to(device)
-            if self.tokenizer.pad_token is None: self.tokenizer.pad_token = self.tokenizer.eos_token
+            
+            # Pass the token to the from_pretrained methods
+            self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, token=hf_token)
+            self.model = AutoModelForCausalLM.from_pretrained(
+                self.model_name, torch_dtype=torch.bfloat16, token=hf_token
+            ).to(device)
+            
+            if self.tokenizer.pad_token is None:
+                self.tokenizer.pad_token = self.tokenizer.eos_token
+            
             GLOBAL_HF_MODEL_CACHE[self.model_name] = {'model': self.model, 'tokenizer': self.tokenizer}
+        
         logging.info(f"KVCacheHFModel '{self.model_name}' is ready.")
-
+        
     @property
     def _llm_type(self) -> str:
         return "KVCacheHFModel"

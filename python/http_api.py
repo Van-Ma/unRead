@@ -1,4 +1,6 @@
 # http_api.py
+from dotenv import load_dotenv
+load_dotenv()
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -7,7 +9,13 @@ import logging
 from chat_manager import ChatManager
 from models.model_parameters import ModelParameters
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - [%(name)s] - %(message)s',
+    force=True
+)
+
 app = Flask(__name__)
 CORS(app)
 chat_manager = ChatManager()
@@ -50,24 +58,12 @@ def delete_chat():
     success, message = chat_manager.delete_chat(chat_id)
     return jsonify({"status": "success", "message": message}) if success else jsonify({"status": "error", "message": message}), 500
 
-
 @app.route('/save_chat_context', methods=['POST'])
 def save_chat_context_endpoint():
-    """Manually triggers a save of the chat's context to the database."""
-    data = request.json
-    chat_id = data.get('chatId')
-    if not chat_id:
-        return jsonify({"status": "error", "message": "chatId is required."}), 400
-    
-    try:
-        success, message = chat_manager.save_chat_context(chat_id)
-        if success:
-            return jsonify({"status": "success", "message": message}), 200
-        else:
-            return jsonify({"status": "error", "message": message}), 500
-    except Exception as e:
-        logging.exception(f"API error in /save_chat_context for {chat_id}:")
-        return jsonify({"status": "error", "message": str(e)}), 500
+    chat_id = request.json.get('chatId')
+    if not chat_id: return jsonify({"status": "error", "message": "chatId is required."}), 400
+    success, message = chat_manager.save_chat_context(chat_id)
+    return jsonify({"status": "success", "message": message}) if success else jsonify({"status": "error", "message": message}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
