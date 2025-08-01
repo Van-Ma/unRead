@@ -85,4 +85,4 @@ def get_global_app() -> Any:
     if _global_app is None:
         default_params: ModelParameters = {"framework_type": "LangChain", "backend": "HuggingFace", "model_version": "Base", "hf_params": {"model_name": "TinyLlama/TinyLlama-1.1B-Chat-v1.0", "use_kv_cache": False}}
         set_global_app(default_params)
-    return _global_app
+    return _global_appgit 
