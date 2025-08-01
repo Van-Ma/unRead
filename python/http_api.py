@@ -9,13 +9,6 @@ import logging
 from chat_manager import ChatManager
 from models.model_parameters import ModelParameters
 
-# --- ADD THIS DEBUG FUNCTION ---
-import datetime
-def debug_log(message):
-    """A simple but robust logger that writes to a file."""
-    with open("debug_log.txt", "a") as f:
-        f.write(f"{datetime.datetime.now()}: {message}\n")
-
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - [%(name)s] - %(message)s',
@@ -29,13 +22,8 @@ print("test! test!")
 
 @app.route('/create_chat', methods=['POST'])
 def create_chat():
-    # debug_log("--- REQUEST START ---")
-    # debug_log("Entered /create_chat endpoint in http_api.py")
-    # model_parameters: ModelParameters = request.json.get('modelParameters', {})
-    # chat_id, message = chat_manager.create_chat(model_parameters)
-    # debug_log("Exiting /create_chat endpoint.")
-    chat_id = 1
-    message = "test"
+    model_parameters: ModelParameters = request.json.get('modelParameters', {})
+    chat_id, message = chat_manager.create_chat(model_parameters)
     return jsonify({"status": "success", "chatId": chat_id, "message": message}), 200
 
 @app.route('/change_model', methods=['POST'])

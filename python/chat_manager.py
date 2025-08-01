@@ -12,7 +12,7 @@ from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
 class ChatManager:
     def create_chat(self, model_params: ModelParameters) -> tuple[str, str]:
-        debug_log("Entered create_chat in ChatManager.")
+        # debug_log("Entered create_chat in ChatManager.")
         print("called create chat", flush = True)
         chat_id = str(uuid.uuid4())
         print("trying to set gloval app1", flush = True)
