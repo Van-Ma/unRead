@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import './chat.scss';
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = "http://localhost:11434"; // Adjust if needed
 
 export default function Chat() {
   const [chatId, setChatId] = useState(null);
@@ -10,31 +10,36 @@ export default function Chat() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const textareaRef = useRef(null);
+  const scrollRef = useRef(null);
 
   useEffect(() => {
-    // Initialize chat when component mounts
-    createChat();
+    async function startChat() {
+      try {
+        const res = await axios.post(`${API_BASE}/create_chat`, {
+          modelParameters: {
+            framework_type: "LangChain",
+            backend: "HuggingFace",
+            model_version: "Base",
+            hf_params: {
+              model_name: "meta-llama/Llama-3.2-1B-Instruct",
+              use_kv_cache: false,
+            },
+          },
+        });
+
+        setChatId(res.data.chat_id);
+        setMessages([{ role: "system", content: "Chat started." }]);
+      } catch (err) {
+        console.error("Failed to create chat:", err);
+      }
+    }
+
+    startChat();
   }, []);
 
-  const createChat = async () => {
-    try {
-      const res = await axios.post(`${API_BASE}/create_chat`, {
-        modelParameters: {
-          framework_type: "LangChain",
-          backend: "HuggingFace",
-          model_version: "Base",
-          hf_params: {
-            model_name: "meta-llama/Llama-3.2-1B-Instruct",
-            use_kv_cache: false,
-          }
-        }
-      });
-      setChatId(res.data.chatId);
-      setMessages([{ role: "system", content: "New chat created." }]);
-    } catch (err) {
-      console.error("Error creating chat", err);
-    }
-  };
+  useEffect(() => {
+    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const sendMessage = async () => {
     if (!input.trim() || !chatId) return;
@@ -49,12 +54,13 @@ export default function Chat() {
         chatId,
         message: input,
       });
+
       setMessages([
         ...newMessages,
         { role: "assistant", content: res.data.response },
       ]);
     } catch (err) {
-      console.error("Chat error", err);
+      console.error("Error sending message:", err);
     } finally {
       setLoading(false);
     }
@@ -83,10 +89,19 @@ export default function Chat() {
       <div className="dashboard-chatoutput">
         {messages.map((msg, idx) => (
           <div key={idx} className={`chat-message ${msg.role}`}>
-            <strong>{msg.role === "user" ? "You" : msg.role === "assistant" ? "AI" : "System"}:</strong> {msg.content}
+            <strong>
+              {msg.role === "user"
+                ? "You"
+                : msg.role === "assistant"
+                ? "AI"
+                : "System"}
+              :
+            </strong>{" "}
+            {msg.content}
           </div>
         ))}
         {loading && <div className="chat-message loading">Typing...</div>}
+        <div ref={scrollRef} />
       </div>
 
       <div className="dashboard-controls">
@@ -98,8 +113,13 @@ export default function Chat() {
             value={input}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
+            disabled={loading || !chatId}
           />
-          <button className="chat-send-btn" onClick={sendMessage} disabled={loading}>
+          <button
+            className="chat-send-btn"
+            onClick={sendMessage}
+            disabled={loading || !chatId}
+          >
             <img src="send2.png" alt="Send" />
           </button>
         </div>
