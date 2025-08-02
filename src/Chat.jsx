@@ -2,13 +2,14 @@ import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import './chat.scss';
 
-const API_BASE = "http://localhost:11434"; // Adjust if needed
+const API_BASE = "http://localhost:5000";
 
 export default function Chat() {
   const [chatId, setChatId] = useState(null);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);        // for sending messages
+  const [loadingChatId, setLoadingChatId] = useState(true);  // for creating chat id
   const textareaRef = useRef(null);
   const scrollRef = useRef(null);
 
@@ -27,10 +28,12 @@ export default function Chat() {
           },
         });
 
-        setChatId(res.data.chat_id);
+        setChatId(res.data.chatId || res.data.chat_id); // just in case API uses different keys
         setMessages([{ role: "system", content: "Chat started." }]);
       } catch (err) {
         console.error("Failed to create chat:", err);
+      } finally {
+        setLoadingChatId(false); // hide spinner no matter what
       }
     }
 
@@ -86,44 +89,50 @@ export default function Chat() {
 
   return (
     <>
-      <div className="dashboard-chatoutput">
-        {messages.map((msg, idx) => (
-          <div key={idx} className={`chat-message ${msg.role}`}>
-            <strong>
-              {msg.role === "user"
-                ? "You"
-                : msg.role === "assistant"
-                ? "AI"
-                : "System"}
-              :
-            </strong>{" "}
-            {msg.content}
+      {loadingChatId ? (
+        <div className="loading-spinner" />
+      ) : (
+        <>
+          <div className="dashboard-chatoutput">
+            {messages.map((msg, idx) => (
+              <div key={idx} className={`chat-message ${msg.role}`}>
+                <strong>
+                  {msg.role === "user"
+                    ? "You"
+                    : msg.role === "assistant"
+                    ? "AI"
+                    : "System"}
+                  :
+                </strong>{" "}
+                {msg.content}
+              </div>
+            ))}
+            {loading && <div className="chat-message loading">Typing...</div>}
+            <div ref={scrollRef} />
           </div>
-        ))}
-        {loading && <div className="chat-message loading">Typing...</div>}
-        <div ref={scrollRef} />
-      </div>
 
-      <div className="dashboard-controls">
-        <div className="chat-input-wrapper">
-          <textarea
-            ref={textareaRef}
-            placeholder="Ask AI anything..."
-            rows={1}
-            value={input}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            disabled={loading || !chatId}
-          />
-          <button
-            className="chat-send-btn"
-            onClick={sendMessage}
-            disabled={loading || !chatId}
-          >
-            <img src="send2.png" alt="Send" />
-          </button>
-        </div>
-      </div>
+          <div className="dashboard-controls">
+            <div className="chat-input-wrapper">
+              <textarea
+                ref={textareaRef}
+                placeholder="Ask AI anything..."
+                rows={1}
+                value={input}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                disabled={loading || !chatId}
+              />
+              <button
+                className="chat-send-btn"
+                onClick={sendMessage}
+                disabled={loading || !chatId}
+              >
+                <img src="send2.png" alt="Send" />
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Creates a new file object tied to a project
@@ -14,16 +13,16 @@ export function createFileObject(projectId, fileName, fileContent = '', imageArr
 
   return {
     projectId,
-    id: uuidv4(),               // file ID
+    id: crypto.randomUUID ? crypto.randomUUID() : fileName + Date.now(),
     fileName: fileName || 'Untitled.txt',
     content: fileContent,
     image: randomImage,
-    x: 100 + Math.floor(Math.random() * 150),  // default/randomized position
+    x: 100 + Math.floor(Math.random() * 150),
     y: 100 + Math.floor(Math.random() * 150),
   };
 }
 
-export function DesktopFile({ file, onMouseDown, onRename, onDelete }) {
+export function DesktopFile({ file, onMouseDown, onRename, onDelete, onDoubleClick }) {
   const [showMenu, setShowMenu] = useState(false);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
   const [isEditing, setIsEditing] = useState(false);
@@ -65,12 +64,17 @@ export function DesktopFile({ file, onMouseDown, onRename, onDelete }) {
         }}
         onMouseDown={(e) => onMouseDown(e, file.id)}
         onContextMenu={handleContextMenu}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          if (onDoubleClick) onDoubleClick(file);
+        }}
       >
         <img
           src={file.image}
           alt="file"
           draggable={false}
-          style={{ width: 50, height: 50, pointerEvents: "none"}}
+          style={{ width: 50, height: 50, pointerEvents: "none" }}
         />
         {isEditing ? (
           <form onSubmit={handleSubmit}>
@@ -88,7 +92,9 @@ export function DesktopFile({ file, onMouseDown, onRename, onDelete }) {
             />
           </form>
         ) : (
-          <div style={{ fontSize: 12, marginTop: 4, color: "white", fontFamily:"monospace" }}>{file.fileName}</div>
+          <div style={{ fontSize: 12, marginTop: 4, color: "white", fontFamily: "monospace" }}>
+            {file.fileName}
+          </div>
         )}
       </div>
 

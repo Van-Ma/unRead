@@ -1,7 +1,7 @@
  import React, { useRef, useState, useEffect } from "react"; 
  import { DesktopFile } from './ContentFiles';
 
-export default function Desktop({ files, setFiles, trashRef, organizeFilesInGrid, handleDropAreaClick}) {
+export default function Desktop({ files, setFiles, trashRef, organizeFilesInGrid, handleDropAreaClick, onFileSelect }) {
   const desktopRef = useRef(null);
   const originalPosition = useRef({x: 0, y: 0});
 
@@ -151,19 +151,22 @@ useEffect(() => {
   </button>
 
   {/* Desktop icons */}
- {files.map(file => (
-  <DesktopFile
-    key={file.id}
-    file={file}
-    onMouseDown={onMouseDown}
-    onRename={(id, newName) =>
-      setFiles(prev => prev.map(f => f.id === id ? { ...f, fileName: newName } : f))
-    }
-    onDelete={(id) =>
-      setFiles(prev => prev.filter(f => f.id !== id))
-    }
-  />
-))}
-</div>
+ {files.map((file) => (
+        <DesktopFile
+          key={file.id}
+          file={file}
+          onMouseDown={onMouseDown}
+          onRename={(id, newName) => {
+            setFiles((prev) =>
+              prev.map((f) => (f.id === id ? { ...f, fileName: newName } : f))
+            );
+          }}
+          onDelete={(id) => {
+            setFiles((prev) => prev.filter((f) => f.id !== id));
+          }}
+          onDoubleClick={() => onFileSelect(file)}  // pass handler here
+        />
+      ))}
+    </div>
 );
 }
