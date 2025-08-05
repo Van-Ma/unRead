@@ -7,7 +7,7 @@ from typing import Optional, Dict, List, Any
 from models.langchain import get_global_app, set_global_app, _current_model_params
 from models.model_parameters import ModelParameters
 from models.kv_cache_hf_model import reset_all_kv_caches, reset_kv_cache_for_chat
-from vectorstore_manager import reset_all_vector_stores
+from vectorstore_manager import reset_all_vector_stores, reset_vectorstore_for_chat
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
 class ChatManager:
@@ -37,12 +37,47 @@ class ChatManager:
         get_global_app().update_state({"configurable": {"thread_id": chat_id}}, {"messages": messages})
 
     def delete_chat(self, chat_id: str) -> tuple[bool, str]:
+        """
+        Performs a "hard delete" by removing the chat's history from the
+        checkpointer (database) and clearing any in-memory stores.
+        """
+        logging.info(f"Performing hard delete for chat {chat_id}.")
         try:
+            # Clear in-memory stores first
             reset_kv_cache_for_chat(chat_id)
-            self.update_context(chat_id, [])
-            return True, f"Chat {chat_id} has been reset."
+            reset_vectorstore_for_chat(chat_id)
+
+            # Get the checkpointer and delete the thread's history
+            current_app = get_global_app()
+            if hasattr(current_app, 'checkpointer') and current_app.checkpointer:
+                config = {"configurable": {"thread_id": chat_id}}
+                current_app.checkpointer.delete(config)
+                message = f"Chat {chat_id} has been deleted from memory and the database."
+            else:
+                message = f"Chat {chat_id} has been reset from memory (no persistent checkpointer configured)."
+
+            return True, message
         except Exception as e:
-            return False, f"Failed to reset chat {chat_id}: {e}"
+            logging.error(f"Failed to delete chat {chat_id}: {e}", exc_info=True)
+            return False, f"Failed to delete chat {chat_id}: {e}"
+    
+    def close_chat(self, chat_id: str) -> tuple[bool, str]:
+        """
+        Closes a chat by unloading it from local memory (KV cache, vector store)
+        but leaves the history in the database untouched.
+        """
+        logging.info(f"Closing chat {chat_id} from memory.")
+        try:
+            # Clear the stateful LLM's memory
+            reset_kv_cache_for_chat(chat_id)
+            
+            # Clear the RAG documents from memory
+            reset_vectorstore_for_chat(chat_id)
+            
+            return True, f"Chat {chat_id} has been closed and unloaded from memory."
+        except Exception as e:
+            logging.error(f"Failed to close chat {chat_id}: {e}", exc_info=True)
+            return False, f"Failed to close chat {chat_id}: {e}"
  
     def save_chat_context(self, chat_id: str) -> tuple[bool, str]:
         try:

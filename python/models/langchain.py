@@ -72,18 +72,104 @@ class LangChainBase:
         except Exception as e:
             return {"messages": [AIMessage(content=f"An error occurred: {e}")]}
 
+    # Place document context into system message
+    # def _prepare_messages(self, state: ChatState) -> List[BaseMessage]:
+    #     """Prepares messages, including a streamlined system prompt for file context."""
+    #     messages = state["messages"]
+    #     file_contents = state.get("file_contents", [])
+    #     if not file_contents:
+    #         return list(messages)
+
+    #     # Create a more helpful, conversational prompt
+    #     file_context_parts = [
+    #         "You are a helpful AI assistant. The user has provided the following file(s) for context. Your primary goal is to answer the user's questions based on this context. Be conversational and concise."
+    #     ]
+    #     for file_info in file_contents:
+    #         if content := file_info.get('content', '').strip():
+    #             file_context_parts.extend([
+    #                 f"\n--- Start of File: {file_info.get('name')} ---",
+    #                 content[:2000], # Limit context size
+    #                 f"--- End of File: {file_info.get('name')} ---"
+    #             ])
+        
+    #     system_prompt = "\n".join(file_context_parts)
+    #     print("context: 123")
+    #     print(system_prompt)
+    #     return [SystemMessage(content=system_prompt)] + list(messages)
+
+    # Place document context in human message
+    # In python/models/langchain.py, inside the LangChainBase class
+
     def _prepare_messages(self, state: ChatState) -> List[BaseMessage]:
+        """
+        Prepares messages for the LLM. If files are present, their content is
+        injected directly into the latest user message to ensure the model sees it.
+        """
         messages = state["messages"]
         file_contents = state.get("file_contents", [])
+
+        # The first message in the history is always a system prompt setting the persona.
+        # Note: In your _generate_response_node for RAG, you have a more specific one.
+        # This one is a good general default.
+        system_prompt = "You are a helpful AI assistant."
+        
         if not file_contents:
-            return list(messages)
-        file_context_parts = ["The user has provided the following files for context:"]
+            # If no files, just ensure the system prompt is there and return
+            return [SystemMessage(content=system_prompt)] + list(messages)
+
+        # --- If there ARE files, inject their content into the user's message ---
+
+        # 1. Construct the file context string
+        file_context_str = "\n\n--- Start of Provided File Content ---\n"
         for file_info in file_contents:
             if content := file_info.get('content', '').strip():
-                file_context_parts.extend([f"\n### File: {file_info.get('name')}", "```", content[:1000], "```"])
-        return [SystemMessage(content="\n".join(file_context_parts))] + list(messages)
+                file_context_str += f"\n[File: {file_info.get('name')}]\n{content[:2000]}\n"
+        file_context_str += "--- End of Provided File Content ---\n"
 
-    def _strip_special_tokens(self, text: str) -> str: return text
+        # 2. Get the history and the last user message
+        history = list(messages)
+        last_user_message = history.pop()
+
+        # 3. Create a new, combined content for the last user message
+        new_content = (
+            f"Based on the following content, please answer my question.\n"
+            f"{file_context_str}\n"
+            f"My Question: \"{last_user_message.content}\""
+        )
+        
+        # 4. Create a new HumanMessage with the combined content
+        new_user_message = HumanMessage(content=new_content)
+
+        # 5. Return the history plus the new, enhanced user message
+        print("message: ")
+        print(new_user_message)
+        return [SystemMessage(content=system_prompt)] + history + [new_user_message]    
+
+
+    def _strip_special_tokens(self, text: str) -> str:
+        """
+        Finds the last assistant marker and returns only the text after it,
+        effectively removing the echoed prompt.
+        """
+        # The marker that precedes the model's actual response
+        assistant_marker = "<|start_header_id|>assistant<|end_header_id|>"
+        
+        # Find the last occurrence of the marker
+        marker_position = text.rfind(assistant_marker)
+        
+        if marker_position != -1:
+            # If the marker is found, take the text after it
+            start_of_response = marker_position + len(assistant_marker)
+            clean_text = text[start_of_response:]
+        else:
+            # If for some reason the marker isn't there, return the original text
+            clean_text = text
+            
+        # Also remove the end-of-turn token if it exists
+        end_token = "<|eot_id|>"
+        clean_text = clean_text.replace(end_token, "")
+            
+        return clean_text.strip()
     
     def _load_stateless_llm(self, model_params: ModelParameters) -> ChatHuggingFace:
         """Loads a stateless HuggingFacePipeline-based model with authentication."""
@@ -145,10 +231,38 @@ class LangChainRAG(LangChainBase):
         return {"context": retriever.invoke(state["messages"][-1].content)}
 
     def _generate_response_node(self, state: ChatState) -> Dict[str, Any]:
-        # This is a simplified placeholder for RAG generation.
-        # A real implementation would format the context and messages for the prompt.
-        response = self.llm.invoke(state["messages"])
-        return {"messages": [AIMessage(content=response.content)]}
+        """
+        Generates a helpful, cited response using the retrieved context,
+        and cleans the final output.
+        """
+        context_docs = state["context"]
+        messages = state["messages"]
+
+        context_str = "\n\n".join([
+            f"Source: {doc.metadata.get('source', 'Unknown')}\nContent: {doc.page_content}"
+            for doc in context_docs
+        ])
+
+        system_prompt = f"""You are a helpful RAG assistant. Your goal is to answer the user's question based *only* on the provided context.
+        
+        - Be conversational and helpful.
+        - If the answer is in the context, synthesize the information and provide a clear answer.
+        - At the end of your answer, cite the source file(s) you used in brackets, like .
+        - If the context is not sufficient to answer the question, simply say "I'm sorry, but I don't have enough information to answer that based on the provided files."
+
+        Context from files:
+        {context_str}
+        """
+        
+        messages_for_llm = [SystemMessage(content=system_prompt)] + list(messages)
+        
+        response = self.llm.invoke(messages_for_llm)
+        
+        # --- FIX ADDED HERE ---
+        # Clean the raw output using the function from the parent class
+        clean_response = self._strip_special_tokens(response.content)
+        
+        return {"messages": [AIMessage(content=clean_response)]}
 
     def _should_retrieve(self, state: ChatState) -> str:
         return "retrieve" if get_vectorstore_for_chat(state["chat_id"]).index.ntotal > 1 else "base_chat"

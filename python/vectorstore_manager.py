@@ -7,6 +7,12 @@ from langchain_huggingface import HuggingFaceEmbeddings
 VECTORSTORES: dict[str, FAISS] = {}
 EMBEDDINGS = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
+def reset_vectorstore_for_chat(chat_id: str):
+    """Clears the RAG vector store for a specific chat."""
+    if chat_id in VECTORSTORES:
+        del VECTORSTORES[chat_id]
+        logging.info(f"Vector store for chat_id {chat_id} has been reset.")
+
 def get_vectorstore_for_chat(chat_id: str) -> FAISS:
     if chat_id not in VECTORSTORES:
         VECTORSTORES[chat_id] = FAISS.from_texts([""], EMBEDDINGS)

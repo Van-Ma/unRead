@@ -58,6 +58,20 @@ def delete_chat():
     success, message = chat_manager.delete_chat(chat_id)
     return jsonify({"status": "success", "message": message}) if success else jsonify({"status": "error", "message": message}), 500
 
+@app.route('/close_chat', methods=['POST'])
+def close_chat():
+    """Closes a chat, freeing up memory but keeping database history."""
+    chat_id = request.json.get('chatId')
+    if not chat_id:
+        return jsonify({"status": "error", "message": "Chat ID is required."}), 400
+    
+    success, message = chat_manager.close_chat(chat_id)
+    
+    if success:
+        return jsonify({"status": "success", "message": message}), 200
+    else:
+        return jsonify({"status": "error", "message": message}), 500
+
 @app.route('/save_chat_context', methods=['POST'])
 def save_chat_context_endpoint():
     chat_id = request.json.get('chatId')
