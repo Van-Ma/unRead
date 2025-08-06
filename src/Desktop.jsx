@@ -1,6 +1,7 @@
  import React, { useRef, useState, useEffect } from "react"; 
+ import { DesktopFile } from './ContentFiles';
 
-export default function Desktop({ files, setFiles, trashRef, organizeFilesInGrid, handleDropAreaClick}) {
+export default function Desktop({ files, setFiles, trashRef, organizeFilesInGrid, handleDropAreaClick, onFileSelect }) {
   const desktopRef = useRef(null);
   const originalPosition = useRef({x: 0, y: 0});
 
@@ -31,8 +32,6 @@ function onMouseMove(e) {
     prev.map(f => (f.id === draggingId ? { ...f, x: newX, y: newY } : f))
   );
 }
-
-
 function onMouseUp(e) {
   if (draggingId !== null) {
     const file = files.find(f => f.id === draggingId);
@@ -91,7 +90,6 @@ function onMouseUp(e) {
     setDraggingId(null);
   }
 }
-
 useEffect(() => {
   function handleMouseMove(e) {
     onMouseMove(e);
@@ -153,24 +151,22 @@ useEffect(() => {
   </button>
 
   {/* Desktop icons */}
-  {files.map((file) => (
-    <img
-      key={file.id}
-      src={file.image}
-      alt="file icon"
-      className="desktop-images"
-      style={{
-        position: "absolute",
-        left: file.x,
-        top: file.y,
-        cursor: "grab",
-        userSelect: "none",
-        zIndex: 20,
-      }}
-      onMouseDown={(e) => onMouseDown(e, file.id)}
-      draggable={false}
-    />
-  ))}
-</div>
+ {files.map((file) => (
+        <DesktopFile
+          key={file.id}
+          file={file}
+          onMouseDown={onMouseDown}
+          onRename={(id, newName) => {
+            setFiles((prev) =>
+              prev.map((f) => (f.id === id ? { ...f, fileName: newName } : f))
+            );
+          }}
+          onDelete={(id) => {
+            setFiles((prev) => prev.filter((f) => f.id !== id));
+          }}
+          onDoubleClick={() => onFileSelect(file)}  // pass handler here
+        />
+      ))}
+    </div>
 );
 }

@@ -2,28 +2,46 @@ import './dashboard.scss';
 import { useRef, useState } from "react";
 import Desktop from './Desktop';
 import Chat from './Chat';
+import { createFileObject } from './ContentFiles';
+function cleanFileContent(rawContent) {
+    const isBinary = /[\x00-\x08\x0E-\x1F\x7F-\x9F]/g.test(rawContent);
+
+    if (isBinary) {
+        return "(Unsupported or binary file format)";
+    }
+
+    return rawContent
+        .replace(/\x00/g, '') // remove null characters
+        .replace(/\r\n/g, '\n') // normalize line endings
+        .trim();
+}
+const isTextFile = (fileName) => {
+    const textExtensions = ['.txt', '.md', '.csv', '.json', '.js', '.html', '.css', '.xml', '.log'];
+    const ext = fileName.slice(fileName.lastIndexOf('.')).toLowerCase();
+    return textExtensions.includes(ext);
+};
 
 function Dashboard({ section, onBack }) {
-
-    const [leftActive, setLeftActive] = useState(false);
     const [files, setFiles] = useState([]);
-    const desktopRef = useRef(null);
     const trashRef = useRef(null);
+    const fileInputRef = useRef(null);
+    const [selectedFile, setSelectedFile] = useState(null); //
 
-
-
-    const toggleLeftPanel = () => {
-        setLeftActive(prev => !prev);
+    const handleFileSelect = (file) => {
+        setSelectedFile(file);
     };
 
-
-    // Called when drop area clicked -> add a file
     const handleDropAreaClick = () => {
-        addFile();
+        if (fileInputRef.current) {
+            fileInputRef.current.value = null;
+            fileInputRef.current.click();
+        }
     };
 
-    // Add a file with random position & cycling image
-    const addFile = () => {
+    const handleFileChange = (e) => {
+        const selectedFiles = e.target.files;
+        if (!selectedFiles || selectedFiles.length === 0) return;
+
         const desktop = document.querySelector(".dashboard-desktop-inner");
         if (!desktop) return;
 
@@ -37,23 +55,58 @@ function Dashboard({ section, onBack }) {
             "file2.png",
             "file3.png",
             "file4.png",
-            "file5.png"
+            "file5.png",
         ];
 
-        const img = fileImages[files.length % fileImages.length];
-        const randomX = Math.floor(Math.random() * maxX);
-        const randomY = Math.floor(Math.random() * maxY);
+        Array.from(selectedFiles).forEach((file) => {
+            const reader = new FileReader();
 
-        setFiles(prev => [
-            ...prev,
-            {
-                id: Date.now() + Math.random(),
-                image: img,
-                x: randomX,
-                y: randomY
+            reader.onload = (event) => {
+                let content = event.target.result;
+                let isBinary = false;
+
+                // For PDF and other binary files, mark isBinary = true and don't show raw content
+                if (
+                    file.type === "application/pdf" ||
+                    file.type === "application/msword" ||
+                    file.type ===
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                ) {
+                    isBinary = true;
+                    content = null; // or keep ArrayBuffer if needed elsewhere
+                }
+
+                const randomX = Math.floor(Math.random() * maxX);
+                const randomY = Math.floor(Math.random() * maxY);
+
+                const projectId = "project-uuid-123";
+
+                const newFile = createFileObject(projectId, file.name, content, fileImages);
+                newFile.x = randomX;
+                newFile.y = randomY;
+                newFile.isBinary = isBinary; // add flag
+
+                setFiles((prev) => [...prev, newFile]);
+            };
+
+            // Read file accordingly
+            if (
+                file.type.startsWith("text") ||
+                file.name.endsWith(".json") ||
+                file.name.endsWith(".md") ||
+                file.name.endsWith(".txt") ||
+                file.name.endsWith(".csv") ||
+                file.name.endsWith(".html")
+            ) {
+                reader.readAsText(file);
+            } else {
+                reader.readAsArrayBuffer(file); // binary file
             }
-        ]);
+        });
     };
+
+
+
 
     // ✅ This is the organize-to-grid logic
     const organizeFilesInGrid = () => {
@@ -61,8 +114,8 @@ function Dashboard({ section, onBack }) {
         if (!desktop) return;
 
         const iconSize = 50;
-        const padding = 10;
-        const gap = 20;
+        const padding = 20;
+        const gap = 50;
         const toolbarHeight = 100; // Add this!
 
         const desktopRect = desktop.getBoundingClientRect();
@@ -113,14 +166,22 @@ function Dashboard({ section, onBack }) {
                         </div>
                         {/* Desktop area with toggleable visibility */}
                         <div className="dashboard-desktop">
+                            <input
+                                type="file"
+                                style={{ display: "none" }}
+                                ref={fileInputRef}
+                                onChange={handleFileChange}
+                                multiple
+                                accept=".txt,.pdf,.doc,.docx,.json,.md,.xml,.csv,.html,.js"
+                            />
                             <Desktop
                                 files={files}
                                 setFiles={setFiles}
-                                handleDropAreaClick={handleDropAreaClick}
+                                handleDropAreaClick={() => fileInputRef.current?.click()}
                                 organizeFilesInGrid={organizeFilesInGrid}
                                 trashRef={trashRef}
+                                onFileSelect={handleFileSelect}  // pass handler down
                             />
-
                         </div>
                     </div>
 
@@ -131,20 +192,30 @@ function Dashboard({ section, onBack }) {
                         <div className="dashboard-left">
                             <div className="dashboard-fileoutput">
                                 <div className="file-output-header">
-                                    <p>filename</p>
-                                    <button id="file-exit-btn">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="25"
-                                            height="25"
-                                            fill="currentColor"
-                                            className="bi bi-x"
-                                            viewBox="0 0 16 16"
-                                        >
-                                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708" />
-                                        </svg>
+                                    <p>{selectedFile ? selectedFile.fileName : "No file selected"}</p>
+                                    <button id="file-exit-btn" onClick={() => setSelectedFile(null)}>
+                                        {/* Close icon */}
                                     </button>
                                 </div>
+                                <pre
+                                    style={{
+                                        whiteSpace: "pre-wrap",
+                                        wordWrap: "break-word",
+                                        padding: "20px",
+                                        paddingTop: "50px",
+                                        color: "black",
+                                        fontFamily: "monospace",
+                                        maxHeight: "70vh",
+                                        overflowY: "auto",
+                                        lineHeight: "1.5",
+                                    }}
+                                >
+                                    {selectedFile
+                                        ? isTextFile(selectedFile.fileName)
+                                            ? selectedFile.content || "(Empty file)"
+                                            : "(Preview not available for this file type)"
+                                        : "Select a file to view content"}
+                                </pre>
                             </div>
                         </div>
 
