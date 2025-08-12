@@ -3,6 +3,7 @@
 import logging
 import uuid
 from typing import Optional, Dict, List, Any
+from context_manager import ContextManager 
 
 from models.langchain import get_global_app, set_global_app, _current_model_params
 from models.model_parameters import ModelParameters
@@ -17,9 +18,25 @@ class ChatManager:
             set_global_app(model_params)
         return chat_id, f"Chat {chat_id} ready."
 
-    def chat(self, chat_id: str, user_input: str, files: Optional[List[Dict[str, str]]] = None) -> Dict[str, Any]:
+    def chat(self, chat_id: str, user_id: str, user_input: str, files: Optional[List[Any]] = None) -> Dict[str, Any]:
         try:
-            graph_input = {"messages": [HumanMessage(content=user_input)], "file_contents": files or [], "chat_id": chat_id}
+            parsed_context_files = []
+            if files:
+                for f in files:
+                    context_file = self.context_manager.parse_and_create_context_file(user_id, chat_id, f)
+                    if context_file:
+                        saved = self.context_manager.save_context_file(user_id, context_file)
+                        if saved:
+                            parsed_context_files.append({
+                                "file_name": context_file.file_name,
+                                "content": context_file.file_content.decode("utf-8"),
+                            })
+
+            graph_input = {
+                "messages": [HumanMessage(content=user_input)],
+                "file_contents": parsed_context_files,
+                "chat_id": chat_id,
+            }
             config = {"configurable": {"thread_id": chat_id}}
             final_state = get_global_app().invoke(graph_input, config)
             if final_state and final_state.get("messages"):
