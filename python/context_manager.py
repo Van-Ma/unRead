@@ -3,7 +3,7 @@ import datetime
 from typing import Optional, List, Any, Union
 import tempfile
 import os
-from langchain import db_connection
+from database_connect import db_connection
 
 class ContextFile:
     def __init__(
@@ -144,6 +144,47 @@ class ContextManager:
         except Exception:
             self.db.rollback()
             return False
+
+    def _add_documents_node(self, state: ChatState) -> Dict[str, Any]:
+    chat_id = state["chat_id"]
+    user_id = state.get("user_id")  # assuming you have user_id in state
+    files = state.get("file_contents", [])
+    if not files:
+        return {}
+
+    context_manager = ContextManager()
+    all_docs = []
+    for file_info in files:
+        file_obj = file_info.get("file_obj")  # your actual uploaded file object
+        mime_type = file_info.get("mime_type")
+        
+        # Parse file to text and create ContextFile
+        context_file = context_manager.parse_and_create_context_file(
+            user_id=user_id,
+            chat_id=chat_id,
+            file=file_obj,
+            mime_type=mime_type,
+            vector=None,  # initially None, vector will be stored by PGVector
+        )
+        if context_file is None:
+            continue
+        
+        # Save to DB, check success
+        saved = context_manager.save_context_file(user_id, context_file)
+        if not saved:
+            # Handle save failure (log or skip)
+            continue
+        
+        # Split text into chunks for vectorstore
+        text_content = context_file.file_content.decode("utf-8")
+        chunks = self.text_splitter.split_text(text_content)
+        for chunk in chunks:
+            all_docs.append(Document(page_content=chunk, metadata={'source': context_file.file_name}))
+
+    if all_docs:
+        get_vectorstore_for_chat(chat_id).add_documents(all_docs)
+
+    return {}
 
     def get_context_files(self, user_id: str, chat_id: str, include_content: bool = True) -> List[ContextFile]:
         """

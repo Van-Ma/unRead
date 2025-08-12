@@ -2,9 +2,9 @@
 
 import logging
 import os
-import psycopg
 import torch
 from typing import Any, List, Dict, Sequence
+from database_connect import db_connection
 
 # --- Third-party imports ---
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline as hf_pipeline
@@ -35,19 +35,7 @@ class ChatState(TypedDict):
 _global_app: Any = None
 _current_model_params: ModelParameters = None
 
-# --- Database Connection ---
-db_connection = None
-try:
-    PG_URI = os.getenv("LANGGRAPH_PG_CHECKPOINT_URI")
-    if PG_URI is None:
-        raise RuntimeError("LANGGRAPH_PG_CHECKPOINT_URI must be set in your .env file!")
-    
-    conn_string = PG_URI + "?options=-csearch_path%3Dchats"
-    db_connection = psycopg.connect(conn_string)
-    logging.info("Successfully created persistent PostgreSQL connection for LangGraph checkpointer.")
-except Exception as e:
-    logging.error(f"Failed to connect to PostgreSQL for checkpointer: {e}")
-    db_connection = None
+
 
 # --- Core Classes ---
 class LangChainBase:
@@ -216,14 +204,47 @@ class LangChainBase:
 class LangChainRAG(LangChainBase):
     def __init__(self, model_params: ModelParameters, **kwargs):
         super().__init__(model_params=model_params, **kwargs)
-        if model_params["model_version"] != "RAG": raise ValueError("Invalid model_version for LangChainRAG.")
+        if model_params["model_version"] != "RAG": 
+            raise ValueError("Invalid model_version for LangChainRAG.")
         self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        self.context_manager = ContextManager()  # instantiate once
+        
+    
     def _add_documents_node(self, state: ChatState) -> Dict[str, Any]:
         chat_id = state["chat_id"]
+        user_id = state.get("user_id")
         files = state.get("file_contents", [])
-        if not files: return {}
-        all_docs = [doc for file_info in files if (content := file_info.get('content', '').strip()) for chunk in self.text_splitter.split_text(content) for doc in [Document(page_content=chunk, metadata={'source': file_info.get('name')})]]
-        if all_docs: get_vectorstore_for_chat(chat_id).add_documents(all_docs)
+        if not files:
+            return {}
+
+        all_docs = []
+        for file_info in files:
+            file_obj = file_info.get("file_obj")  # your actual uploaded file object
+            mime_type = file_info.get("mime_type")
+
+            # Parse file to text and create ContextFile
+            context_file = self.context_manager.parse_and_create_context_file(
+                user_id=user_id,
+                chat_id=chat_id,
+                file=file_obj,
+                mime_type=mime_type,
+                vector=None,
+            )
+            if context_file is None:
+                continue
+
+            saved = self.context_manager.save_context_file(user_id, context_file)
+            if not saved:
+                continue
+
+            text_content = context_file.file_content.decode("utf-8")
+            chunks = self.text_splitter.split_text(text_content)
+            for chunk in chunks:
+                all_docs.append(Document(page_content=chunk, metadata={'source': context_file.file_name}))
+
+        if all_docs:
+            get_vectorstore_for_chat(chat_id).add_documents(all_docs)
+
         return {}
 
     def _retrieve_node(self, state: ChatState) -> Dict[str, Any]:

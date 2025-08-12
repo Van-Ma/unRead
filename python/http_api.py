@@ -5,11 +5,12 @@ load_dotenv()
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import logging
+import os
 
 from context_manager import ContextManager
 from chat_manager import ChatManager
 from user_authentication import UserAuthentication
-from models.model_parameters import ModelParameters
+from database_connect import db_connection
 
 
 logging.basicConfig(
@@ -81,6 +82,7 @@ def save_chat_context_endpoint():
     if not chat_id: return jsonify({"status": "error", "message": "chatId is required."}), 400
     success, message = chat_manager.save_chat_context(chat_id)
     return jsonify({"status": "success", "message": message}) if success else jsonify({"status": "error", "message": message}), 500
+    
 
 @app.route('/upload_context_file', methods=['POST'])
 def upload_context_file():
@@ -122,34 +124,83 @@ auth = UserAuthentication(
     cookie_http_only=True,
 )
 
-# Example: POST /login (JSON: { "email": "...", "password": "...", "useCookie": true|false })
+# Helper to lookup user by email from DB
+def user_lookup(email: str):
+    with conn.cursor() as cur:
+        cur.execute("SELECT user_id, email, password_hash, hash_algo, 'user' AS role FROM users WHERE email = %s", (email,))
+        row = cur.fetchone()
+        if not row:
+            return None
+        user_id, email, pw_hash, algo, role = row
+        return {
+            "id": user_id,
+            "email": email,
+            "password_hash": pw_hash,
+            "hash_algo": algo,
+            "role": role,
+        }
+
+# Helper to create user in DB
+def create_user(username: str, email: str, password: str):
+    # Check if exists
+    with conn.cursor() as cur:
+        cur.execute("SELECT 1 FROM users WHERE email = %s", (email,))
+        if cur.fetchone():
+            return False, "Email already registered"
+
+    pw_hash, algo = auth.hash_password(password)
+
+    user_id = str(uuid.uuid4())
+    with conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO users (user_id, username, email, password_hash, hash_algo) VALUES (%s, %s, %s, %s, %s)",
+            (user_id, username, email, pw_hash, algo)
+        )
+    conn.commit()
+    return True, user_id
+
+
+@app.route('/signup', methods=['POST'])
+def signup():
+    data = request.json or {}
+    username = data.get("username", "").strip()
+    email = data.get("email", "").strip().lower()
+    password = data.get("password", "")
+    confirm_password = data.get("confirm_password", "")
+
+    if not username or not email or not password or not confirm_password:
+        return jsonify({"status": "error", "message": "Missing required fields"}), 400
+
+    if password != confirm_password:
+        return jsonify({"status": "error", "message": "Passwords do not match"}), 400
+
+    success, result = create_user(username, email, password)
+    if not success:
+        return jsonify({"status": "error", "message": result}), 409
+
+    token = auth.generate_jwt(sub=result, claims={"role": "user"})
+    return jsonify({"status": "success", "token": token}), 201
+
+
 @app.route('/login', methods=['POST'])
 def login():
     data = request.json or {}
     email = data.get("email", "").strip().lower()
     password = data.get("password", "")
 
-    # replace this with your real DB lookup (PostgreSQL)
-    def user_lookup_fn(eml):
-        # Example shape returned from DB:
-        # return {"id": 123, "email": eml, "password_hash": "...", "hash_algo": "bcrypt", "role": "user"}
-        return chat_manager.user_lookup(eml)  # <- implement on your side
-
-    use_cookie = bool(data.get("useCookie", False))
-
     ok, result = auth.perform_login_issue_token(
         email=email,
         password=password,
-        user_lookup_fn=user_lookup_fn,
-        extra_claims_fn=lambda user: {"chat": "allowed"},  # optional
-        set_cookie=use_cookie,
-        flask_response_factory=lambda payload, status: jsonify(payload),  # your response factory
+        user_lookup_fn=user_lookup,
+        extra_claims_fn=lambda u: {"role": u.get("role", "user")},
+        set_cookie=False,
+        flask_response_factory=lambda data, status: jsonify(data),
     )
     if ok and hasattr(result, "status_code"):
         return result, result.status_code
     return (jsonify(result), 200) if ok else (jsonify(result), 401)
 
-# Example: protected route (accepts either Authorization: Bearer <JWT> or session cookie)
+
 @app.route('/me', methods=['GET'])
 def me():
     try:
@@ -158,12 +209,57 @@ def me():
     except ValueError as e:
         return jsonify({"status": "error", "message": str(e)}), 401
 
-# Example: logout (clear cookie if you're using cookie transport)
+
 @app.route('/logout', methods=['POST'])
 def logout():
     resp = jsonify({"status": "success"})
     auth.clear_session_cookie(resp)
     return resp, 200
 
+
+
+@app.route('/reset-password', methods=['POST'])
+def reset_password():
+    data = request.json or {}
+    token = data.get("token")
+    new_password = data.get("new_password")
+
+    if not token or not new_password:
+        return jsonify({"status": "error", "message": "Missing token or new password"}), 400
+
+    try:
+        payload = auth.verify_jwt(token)
+        if not payload.get("reset"):
+            raise ValueError("Invalid reset token")
+        user_id = payload["sub"]
+    except Exception as e:
+        return jsonify({"status": "error", "message": "Invalid or expired token"}), 401
+
+    pw_hash, algo = auth.hash_password(new_password)
+    chat_manager.update_user_password(user_id, pw_hash, algo)
+
+    return jsonify({"status": "success", "message": "Password updated"}), 200
+
+
+@app.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    data = request.json or {}
+    email = data.get("email", "").strip().lower()
+
+    user = chat_manager.user_lookup(email)
+    if not user:
+        return jsonify({"status": "error", "message": "Email not found"}), 404
+
+    # Generate reset token with short expiry, e.g. 15 mins
+    reset_token = auth.generate_jwt(sub=str(user["id"]), claims={"reset": True}, ttl_seconds=900)
+
+    # Send email to user with reset link containing token
+    chat_manager.send_reset_email(email, reset_link)
+
+    return jsonify({"status": "success", "message": "Password reset email sent"}), 200
+
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+

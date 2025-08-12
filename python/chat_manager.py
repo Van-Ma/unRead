@@ -5,7 +5,7 @@ import uuid
 from typing import Optional, Dict, List, Any
 from context_manager import ContextManager 
 
-from models.langchain import get_global_app, set_global_app, _current_model_params
+from models.langchain_model import get_global_app, set_global_app, _current_model_params
 from models.model_parameters import ModelParameters
 from models.kv_cache_hf_model import reset_all_kv_caches, reset_kv_cache_for_chat
 from vectorstore_manager import reset_all_vector_stores, reset_vectorstore_for_chat

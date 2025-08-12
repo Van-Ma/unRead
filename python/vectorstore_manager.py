@@ -1,25 +1,25 @@
-# vectorstore_manager.py
-
-import logging
-from langchain_community.vectorstores import FAISS
+from context_manager import ContextManager
+from langchain.vectorstores import PGVector
 from langchain_huggingface import HuggingFaceEmbeddings
 
-VECTORSTORES: dict[str, FAISS] = {}
-EMBEDDINGS = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+_vectorstore_cache = {}
+embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
-def reset_vectorstore_for_chat(chat_id: str):
-    """Clears the RAG vector store for a specific chat."""
-    if chat_id in VECTORSTORES:
-        del VECTORSTORES[chat_id]
-        logging.info(f"Vector store for chat_id {chat_id} has been reset.")
+def get_vectorstore_for_chat(chat_id: str) -> PGVector:
+    if chat_id in _vectorstore_cache:
+        return _vectorstore_cache[chat_id]
 
-def get_vectorstore_for_chat(chat_id: str) -> FAISS:
-    if chat_id not in VECTORSTORES:
-        VECTORSTORES[chat_id] = FAISS.from_texts([""], EMBEDDINGS)
-    return VECTORSTORES[chat_id]
+    context_manager = ContextManager()
+    conn = context_manager.db  # your persistent psycopg connection
 
-def reset_all_vector_stores():
-    """Clears all RAG vector stores."""
-    global VECTORSTORES
-    VECTORSTORES = {}
-    logging.info("All RAG vector stores have been reset.")
+    vectorstore = PGVector(
+        connection=conn,
+        embedding_function=embedding_model.embed_query,
+        collection_name="context_files",
+        vector_column_name="vector",
+        id_column_name="file_id",
+        content_column_name="file_content",
+    )
+
+    _vectorstore_cache[chat_id] = vectorstore
+    return vectorstore

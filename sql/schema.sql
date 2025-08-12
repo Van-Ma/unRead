@@ -18,14 +18,14 @@ CREATE TABLE projects (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- CONTEXT_FILES table, linked to projects
+-- CONTEXT_FILES table with pgvector vector column
 CREATE TABLE context_files (
     file_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     project_id UUID NOT NULL REFERENCES projects(project_id) ON DELETE CASCADE,
     file_name TEXT NOT NULL,
     file_content BYTEA,
     mime_type TEXT,
-    vector REAL[],
+    vector vector(1536), 
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
