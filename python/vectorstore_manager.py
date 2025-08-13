@@ -23,3 +23,4 @@ def get_vectorstore_for_chat(chat_id: str) -> PGVector:
 
     _vectorstore_cache[chat_id] = vectorstore
     return vectorstore
+
