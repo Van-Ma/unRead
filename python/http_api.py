@@ -7,10 +7,10 @@ from flask_cors import CORS
 import logging
 import os
 
-from context_manager import ContextManager
 from chat_manager import ChatManager
+from file_manager import ingest_files, parse_file_to_text, ingest_text_to_vectorstore
 from user_authentication import UserAuthentication
-from database_connect import db_connection
+from database import db_connection, user_owns_chat
 
 
 logging.basicConfig(
@@ -21,14 +21,25 @@ logging.basicConfig(
 
 app = Flask(__name__)
 CORS(app)
-chat_manager = ChatManager()
-context_manager = ContextManager()
+chat_manager = ChatManager() # TODO: make this distrubute across multiple servers / model APIs. Balance load.
 
 @app.route('/create_chat', methods=['POST'])
 def create_chat():
     model_parameters: ModelParameters = request.json.get('modelParameters', {})
     chat_id, message = chat_manager.create_chat(model_parameters)
     return jsonify({"status": "success", "chatId": chat_id, "message": message}), 200
+
+@app.route('/open_chat', methods=['POST'])
+def open_chat():
+    user_id = request.headers.get('X-User-Id')
+    data = request.json or {}
+    chat_id = data.get('chatId')
+    if not user_id or not chat_id:
+        return jsonify({"status": "error", "message": "Missing user or chatId"}), 400
+    if not user_owns_chat(user_id, chat_id):
+        return jsonify({"status": "error", "message": "Access denied for this chat"}), 403
+    result = chat_manager.open_chat(chat_id, user_id)
+    return jsonify(result), (200 if result.get("status") == "success" else 403)
 
 @app.route('/change_model', methods=['POST'])
 def change_model():
@@ -39,11 +50,25 @@ def change_model():
 
 @app.route('/chat', methods=['POST'])
 def chat_message():
-    data = request.json or {}
-    chat_id, message, files = data.get('chatId'), data.get('message', ''), data.get('files', [])
-    if not chat_id: return jsonify({"status": "error", "message": "Chat ID is required"}), 400
-    response_data = chat_manager.chat(chat_id=chat_id, user_input=message, files=files)
-    return jsonify(response_data), 200 if response_data["status"] == "success" else 500
+    user_id = request.headers.get('X-User-Id')
+    # Support both multipart/form-data and application/json
+    json_body = request.get_json(silent=True) or {}
+    chat_id = request.form.get('chatId') or json_body.get('chatId')
+    message = (request.form.get('message') if request.form else None) or json_body.get('message', '')
+    files_payload = []
+    if 'files' in request.files:
+        files_payload = request.files.getlist('files')
+    elif 'file' in request.files:
+        files_payload = [request.files['file']]
+    else:
+        json_body = request.get_json(silent=True) or {}
+        files_payload = json_body.get('files', [])
+    if not chat_id:
+        return jsonify({"status": "error", "message": "Chat ID is required"}), 400
+    if not user_id or not user_owns_chat(user_id, chat_id):
+        return jsonify({"status": "error", "message": "Access denied for this chat"}), 403
+    response_data = chat_manager.chat(chat_id=chat_id, user_id=user_id, user_input=message, files=files_payload)
+    return jsonify(response_data), (200 if response_data.get("status") == "success" else 500)
 
 @app.route('/chat_context/<chat_id>', methods=['GET', 'POST'])
 def chat_context(chat_id):
@@ -86,31 +111,20 @@ def save_chat_context_endpoint():
 
 @app.route('/upload_context_file', methods=['POST'])
 def upload_context_file():
-    # Assume user_id is fetched from authentication (e.g., JWT/session)
     user_id = request.headers.get('X-User-Id')
-    if not user_id:
-        return jsonify({"status": "error", "message": "User authentication required"}), 401
-
     chat_id = request.form.get('chatId')
     if not chat_id:
         return jsonify({"status": "error", "message": "chatId is required"}), 400
-
-    if 'file' not in request.files:
+    if 'file' not in request.files and 'files' not in request.files:
         return jsonify({"status": "error", "message": "No file part in request"}), 400
-
-    uploaded_file = request.files['file']
-
-    # Parse and create ContextFile object
-    context_file = context_manager.parse_and_create_context_file(user_id, chat_id, uploaded_file)
-    if not context_file:
-        return jsonify({"status": "error", "message": "File parsing failed or empty content"}), 400
-
-    # Save to DB
-    success = context_manager.save_context_file(user_id, context_file)
-    if success:
-        return jsonify({"status": "success", "message": "File uploaded and saved"}), 201
-    else:
-        return jsonify({"status": "error", "message": "Project validation failed or DB error"}), 403
+    files = request.files.getlist('files') if 'files' in request.files else [request.files['file']]
+    try:
+        if not user_id or not user_owns_chat(user_id, chat_id):
+            return jsonify({"status": "error", "message": "Access denied for this chat"}), 403
+        ingest_files(chat_id, files)
+        return jsonify({"status": "success", "message": "File(s) uploaded and ingested"}), 201
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Ingestion failed: {e}"}), 500
 
 
 auth = UserAuthentication(

@@ -3,9 +3,7 @@
 import logging
 import uuid
 from typing import Optional, Dict, List, Any
-from context_manager import ContextManager 
-
-from models.langchain_model import get_global_app, set_global_app, _current_model_params
+from models.langchain_graphs import get_global_app, set_global_app, _current_model_params
 from models.model_parameters import ModelParameters
 from models.kv_cache_hf_model import reset_all_kv_caches, reset_kv_cache_for_chat
 from vectorstore_manager import reset_all_vector_stores, reset_vectorstore_for_chat
@@ -18,19 +16,20 @@ class ChatManager:
             set_global_app(model_params)
         return chat_id, f"Chat {chat_id} ready."
 
-    def chat(self, chat_id: str, user_id: str, user_input: str, files: Optional[List[Any]] = None) -> Dict[str, Any]:
+    def chat(self, chat_id: str, user_id: Optional[str], user_input: str, files: Optional[List[Any]] = None) -> Dict[str, Any]:
         try:
             parsed_context_files = []
             if files:
                 for f in files:
-                    context_file = self.context_manager.parse_and_create_context_file(user_id, chat_id, f)
-                    if context_file:
-                        saved = self.context_manager.save_context_file(user_id, context_file)
-                        if saved:
-                            parsed_context_files.append({
-                                "file_name": context_file.file_name,
-                                "content": context_file.file_content.decode("utf-8"),
-                            })
+                    # Accept Werkzeug FileStorage or dicts carrying file, mime type, and name
+                    if hasattr(f, 'save') or hasattr(f, 'read'):
+                        parsed_context_files.append({
+                            "file_obj": f,
+                            "mime_type": getattr(f, 'mimetype', None),
+                            "filename": getattr(f, 'filename', None),
+                        })
+                    elif isinstance(f, dict):
+                        parsed_context_files.append(f)
 
             graph_input = {
                 "messages": [HumanMessage(content=user_input)],
@@ -44,6 +43,17 @@ class ChatManager:
             raise ValueError("Graph execution did not return a valid state.")
         except Exception as e:
             return {"status": "error", "response": f"An error occurred: {e}"}
+
+    def open_chat(self, chat_id: str, user_id: str) -> Dict[str, Any]:
+        """Returns the current state/context for a chat (auth enforced at API boundary)."""
+        try:
+            state = get_global_app().get_state({"configurable": {"thread_id": chat_id}})
+            history = []
+            if state and state.values.get("messages"):
+                history = [{"role": msg.type, "content": msg.content} for msg in state.values["messages"]]
+            return {"status": "success", "chatId": chat_id, "history": history}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
 
     def get_context(self, chat_id: str) -> List[Dict[str, str]]:
         state = get_global_app().get_state({"configurable": {"thread_id": chat_id}})

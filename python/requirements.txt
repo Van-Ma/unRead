@@ -20,6 +20,12 @@ psycopg[binary,pool]
 # Vector Store (in-memory)
 faiss-cpu
 
+# File parsing
+pdfplumber
+python-docx
+pandas
+openpyxl
+
 # Web API Server
 flask
 flask-cors
