@@ -1,5 +1,5 @@
 import './main-style.scss'; 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Dashboard from './Dashboard';
 
 function Main() {
@@ -10,6 +10,17 @@ function Main() {
   const [token, setToken] = useState(null);
   const [authMode, setAuthMode] = useState('login'); // 'login' or 'signup'
   const [authError, setAuthError] = useState(null);
+
+  // Check URL for token on mount (for OAuth redirects)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get('token');
+    if (urlToken) {
+      setToken(urlToken);
+      // Optionally clear token from URL after grabbing it
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   // Signup component inside Main
   const Signup = () => {
@@ -89,6 +100,17 @@ function Main() {
         <input placeholder="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} />
         <button onClick={handleLogin}>Log In</button>
         {authError && <p style={{color: 'red'}}>{authError}</p>}
+
+        {/* Google login button */}
+        <button
+          style={{ marginTop: '10px', backgroundColor: '#4285F4', color: 'white', border: 'none', padding: '10px' }}
+          onClick={() => {
+            window.location.href = "http://localhost:5000/login/google"; // Change to your backend URL
+          }}
+        >
+          Log in with Google
+        </button>
+
         <p>
           Don't have an account?{' '}
           <button onClick={() => { setAuthMode('signup'); setAuthError(null); }}>Sign Up</button>

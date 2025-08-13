@@ -2,6 +2,7 @@ import os
 import logging
 import psycopg
 
+
 # --- Database Connection ---
 db_connection = None
 try:
