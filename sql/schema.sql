@@ -1,56 +1,45 @@
--- Enable UUID extension for unique IDs
+-- Base extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Use a dedicated schema to match app connection search_path
+CREATE SCHEMA IF NOT EXISTS chats;
+SET search_path TO chats;
 
 -- USERS table
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     user_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     username TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
+    hash_algo TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- PROJECTS table, linked to users
-CREATE TABLE projects (
-    project_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    project_name TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- CONTEXT_FILES table with pgvector vector column
-CREATE TABLE context_files (
-    file_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    project_id UUID NOT NULL REFERENCES projects(project_id) ON DELETE CASCADE,
-    file_name TEXT NOT NULL,
-    file_content BYTEA,
-    mime_type TEXT,
-    vector vector(1536), 
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- CHAT_HISTORY table, linked to projects
-CREATE TABLE chat_history (
+-- CHATS table, directly owned by users (no projects)
+CREATE TABLE IF NOT EXISTS chats (
     chat_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    project_id UUID NOT NULL REFERENCES projects(project_id) ON DELETE CASCADE,
-    user_message TEXT NOT NULL,
-    ai_response TEXT,
+    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Enable Row Level Security (RLS) on tables where appropriate
-ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
-ALTER TABLE context_files ENABLE ROW LEVEL SECURITY;
-ALTER TABLE chat_history ENABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS idx_chats_user_id ON chats(user_id);
 
--- RLS policy on projects: user can only access own projects
-CREATE POLICY user_project_access ON projects
-    USING (user_id = current_setting('app.current_user_id')::UUID);
+-- Note: Context file storage is handled by LangChain PGVector integration
+-- which creates and manages its own tables (e.g., langchain_pg_collection, langchain_pg_embedding).
+-- No separate context_files table is required.
 
--- RLS policy on context_files: user can only access files for their projects
-CREATE POLICY user_context_files_access ON context_files
-    USING (project_id IN (SELECT project_id FROM projects WHERE user_id = current_setting('app.current_user_id')::UUID));
+-- Note: Conversation state/history is persisted by LangGraph Postgres checkpointer
+-- in its own tables. No separate chat_history table is required here.
 
--- RLS policy on chat_history: user can only access chats for their projects
-CREATE POLICY user_chat_history_access ON chat_history
-    USING (project_id IN (SELECT project_id FROM projects WHERE user_id = current_setting('app.current_user_id')::UUID));
+-- Optional: RLS can be enabled if you manage session variables for user scoping.
+-- ALTER TABLE chats ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+
+-- Example RLS policies (commented out by default):
+-- CREATE POLICY user_chat_access ON chats
+--     USING (user_id = current_setting('app.current_user_id')::UUID);
+
+-- LangChain PGVector tables should be governed separately if you enable RLS there.
+
+-- LangGraph checkpointer tables handle their own access; enable RLS only if you fully manage it.
