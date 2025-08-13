@@ -11,16 +11,34 @@ function Main() {
   const [authMode, setAuthMode] = useState('login'); // 'login' or 'signup'
   const [authError, setAuthError] = useState(null);
 
-  // Check URL for token on mount (for OAuth redirects)
+  // On mount: check URL for token (Google OAuth) or localStorage for saved token
   useEffect(() => {
+    // Try URL token param first
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get('token');
+
     if (urlToken) {
       setToken(urlToken);
-      // Optionally clear token from URL after grabbing it
+      localStorage.setItem('token', urlToken);
+      // Remove token from URL
       window.history.replaceState({}, document.title, window.location.pathname);
+    } else {
+      // Else try localStorage token
+      const savedToken = localStorage.getItem('token');
+      if (savedToken) {
+        setToken(savedToken);
+      }
     }
   }, []);
+
+  // Save token to localStorage when it changes
+  useEffect(() => {
+    if (token) {
+      localStorage.setItem('token', token);
+    } else {
+      localStorage.removeItem('token');
+    }
+  }, [token]);
 
   // Signup component inside Main
   const Signup = () => {
@@ -105,7 +123,7 @@ function Main() {
         <button
           style={{ marginTop: '10px', backgroundColor: '#4285F4', color: 'white', border: 'none', padding: '10px' }}
           onClick={() => {
-            window.location.href = "http://localhost:5000/login/google"; // Change to your backend URL
+            window.location.href = "http://localhost:5000/login/google"; 
           }}
         >
           Log in with Google

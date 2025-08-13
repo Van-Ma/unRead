@@ -19,7 +19,7 @@ from typing_extensions import TypedDict, Annotated
 from models.model_parameters import ModelParameters
 from models.kv_cache_hf_model import KVCacheHFModel
 from models.model_cache import GLOBAL_HF_MODEL_CACHE
-from database import db_connection
+from database import PG_URI
 from vectorstore_manager import get_vectorstore_for_chat
 from file_manager import parse_file_to_text
 
@@ -192,34 +192,42 @@ class LangChainRAG(LangChainBase):
 
 
 def set_global_app(model_params: ModelParameters) -> None:
-	"""Builds and compiles the appropriate LangGraph app, setting it globally."""
-	global _global_app, _current_model_params
-	_current_model_params = model_params
-	logging.info(f"Building LangGraph app with model params: {model_params}")
-	workflow = StateGraph(ChatState)
-	model_instance = LangChainRAG(model_params) if model_params.get("model_version") == "RAG" else LangChainBase(model_params)
-	if model_params.get("model_version") == "RAG":
-		workflow.add_node("add_documents", model_instance._add_documents_node)
-		workflow.add_node("retrieve", model_instance._retrieve_node)
-		workflow.add_node("generate_rag", model_instance._generate_response_node)
-		workflow.add_node("base_chat", model_instance._call_model_node)
-		workflow.set_entry_point("add_documents")
-		workflow.add_conditional_edges("add_documents", model_instance._should_retrieve, {"retrieve": "retrieve", "base_chat": "base_chat"})
-		workflow.add_edge("retrieve", "generate_rag")
-		workflow.add_edge("generate_rag", END)
-		workflow.add_edge("base_chat", END)
-	else:
-		workflow.add_node("call_model", model_instance._call_model_node)
-		workflow.set_entry_point("call_model")
-		workflow.add_edge("call_model", END)
-	if db_connection:
-		checkpointer = PostgresSaver(sync_connection=db_connection)
-		_global_app = workflow.compile(checkpointer=checkpointer)
-		logging.info("Global app compiled and ready with PostgreSQL checkpointer.")
-	else:
-		logging.warning("Database connection failed. Compiling graph with persistent in-memory checkpointer.")
-		memory_checkpointer = MemorySaver()
-		_global_app = workflow.compile(checkpointer=memory_checkpointer)
+    """Builds and compiles the appropriate LangGraph app, setting it globally."""
+    global _global_app, _current_model_params
+    _current_model_params = model_params
+    logging.info(f"Building LangGraph app with model params: {model_params}")
+
+    workflow = StateGraph(ChatState)
+    model_instance = LangChainRAG(model_params) if model_params.get("model_version") == "RAG" else LangChainBase(model_params)
+
+    if model_params.get("model_version") == "RAG":
+        workflow.add_node("add_documents", model_instance._add_documents_node)
+        workflow.add_node("retrieve", model_instance._retrieve_node)
+        workflow.add_node("generate_rag", model_instance._generate_response_node)
+        workflow.add_node("base_chat", model_instance._call_model_node)
+        workflow.set_entry_point("add_documents")
+        workflow.add_conditional_edges(
+            "add_documents",
+            model_instance._should_retrieve,
+            {"retrieve": "retrieve", "base_chat": "base_chat"},
+        )
+        workflow.add_edge("retrieve", "generate_rag")
+        workflow.add_edge("generate_rag", END)
+        workflow.add_edge("base_chat", END)
+    else:
+        workflow.add_node("call_model", model_instance._call_model_node)
+        workflow.set_entry_point("call_model")
+        workflow.add_edge("call_model", END)
+
+    if PG_URI:
+        checkpointer = PostgresSaver(PG_URI)
+        _global_app = workflow.compile(checkpointer=checkpointer)
+        logging.info("Global app compiled and ready with PostgreSQL checkpointer.")
+    else:
+        logging.warning("Database connection failed. Compiling graph with persistent in-memory checkpointer.")
+        memory_checkpointer = MemorySaver()
+        _global_app = workflow.compile(checkpointer=memory_checkpointer)
+
 
 
 def get_global_app() -> Any:

@@ -2,7 +2,7 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-from flask import Flask, redirect, url_for, session, jsonify
+from flask import Flask, redirect, url_for, session, jsonify, request
 from flask_cors import CORS
 import logging
 import os
@@ -11,7 +11,7 @@ import secrets
 from chat_manager import ChatManager
 from file_manager import ingest_files, parse_file_to_text, ingest_text_to_vectorstore
 from user_authentication import oauth, init_oauth
-from database import db_connection, user_owns_chat
+from database import PG_URI
 
 
 logging.basicConfig(
@@ -154,8 +154,10 @@ def authorize_google():
     user_info = google.parse_id_token(token, nonce=nonce)
     session['user'] = user_info
     
-    return redirect(f"http://localhost:5000/?token={token['access_token']}")
+    return redirect(f"http://localhost:5173/?token={token['access_token']}")
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+    
+
 

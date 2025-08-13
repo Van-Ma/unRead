@@ -1,5 +1,5 @@
 from typing import Dict
-from database import db_connection
+from database import PG_URI
 from langchain_community.vectorstores import PGVector
 from langchain_huggingface import HuggingFaceEmbeddings
 

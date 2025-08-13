@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "electron": "^28.3.3",
+    "keytar": "^7.9.0",
     "mammoth": "^1.9.1",
     "pdf-parse": "^1.1.1",
     "react": "^19.1.1",
