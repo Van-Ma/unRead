@@ -140,7 +140,6 @@ def login_google():
     google = oauth.create_client('google')
     nonce = secrets.token_urlsafe(16)
     session['nonce'] = nonce
-
     redirect_uri = url_for('authorize_google', _external=True)
     return google.authorize_redirect(redirect_uri, nonce=nonce)
 
@@ -154,10 +153,12 @@ def authorize_google():
     user_info = google.parse_id_token(token, nonce=nonce)
     session['user'] = user_info
     
+    # Redirect to React with token
     return redirect(f"http://localhost:5173/?token={token['access_token']}")
-
+    
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
     
+
 
 

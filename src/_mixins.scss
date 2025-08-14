@@ -1,3 +1,7 @@
+$color-header: #1F1F1F;
+$color-body: #434343;
+$color-highlight: #808080;
+
 @mixin flex-center {
   display: flex;
   justify-content: center;
@@ -16,16 +20,29 @@
   box-sizing: border-box;
   font-size: 12pt;
   border-bottom: 5px solid black;
-    border-right: 5px solid black;
+  border-right: 5px solid black;
   border-left: 3px solid rgb(165, 165, 165);
-    border-top: 3px solid rgb(165, 165, 165);
+  border-top: 3px solid rgb(165, 165, 165);
   border-radius: 5px;
   cursor: pointer;
   padding: 0px;
 }
 
-@mixin border-style{
-    border: 2px solid grey;
+@mixin auth-button {
+  border-radius: 50px;
+  width: 50%;
+  padding: 15px;
+  background-color: white;
+}
+
+@mixin auth-input{
+      padding: 10px 20px;
+    width: 100%;
+    margin-bottom: 5%;
+}
+
+@mixin border-style {
+  border: 2px solid grey;
   border-bottom: 5px solid black;
   border-right: 5px solid grey;
 }

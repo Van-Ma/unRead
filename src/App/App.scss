@@ -1,0 +1,139 @@
+@import '../_mixins';
+
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+  body {
+    height: 99.5vh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: rgb(47, 47, 47);
+  }
+
+
+  /* ---------------------------------------component containers---------------*/
+
+.app-page {
+  width: 100vw;
+  height: 100vh;
+  background: #1e1e1e;
+  position: relative;
+  overflow: hidden;
+  font-family: monospace;
+}
+
+.window {
+  @include border-style;
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* allow Rnd to control height */
+  background: #ededed;
+  border: 1px solid #444;
+  color: black;
+}
+
+.window-header {
+  background: #3a3a3a;
+  padding: 6px 10px;
+  cursor: move;
+  font-weight: bold;
+  color: white;
+}
+
+.window-content {
+  flex: 1;
+  overflow: auto;
+  padding: 10px;
+}
+
+/*-----------------------------------------------app header and nav bar--------------*/
+
+.app-header{
+  @include flex-center;
+  position: relative;
+  justify-content: left;
+  background-color: $color-body;
+  width: 100%;
+  height: 50px;
+  padding: 5px 8px;
+  box-sizing: border-box;
+  z-index: 999;
+}
+
+#brain-logo{
+  height: 35px;
+  width: auto;
+}
+
+.app-toolbar {
+  @include flex-center; 
+  display: flex;          
+  flex-direction: column;
+  align-items: center;  
+  justify-content: flex-start; 
+  position: absolute;
+  left: 0;
+  width: 50px;
+  height: 100vh;
+  padding: 10px;
+  background-color: rgb(52, 52, 52);
+  z-index: 1000;
+  border-right: 2px solid grey;
+}
+
+#file-manager-btn{
+  background: none;
+  padding: 5px;
+  box-sizing: border-box;
+  width: 35px;
+  height: 35px;
+  cursor: pointer;
+}
+
+.app-toolbar img {
+  width: 100%;
+}
+
+/*---------------------------------------------------------file manager*/
+
+.file-manager-container {
+  position: absolute;
+  top: 80px;                // below header if needed
+  left: -20vw;               // start fully off-screen
+  width: 20vw;
+  min-width: 300px;
+  height: 80vh;
+  background-color: $color-body;
+  z-index: 999;             // below toolbar (998) or above if needed
+  border-left: 5px solid black;
+  border-right: 5px solid rgb(21, 21, 21);
+  border-bottom: 5px solid black;
+  border-top: 5px solid rgb(68, 68, 68);
+  transition: left 0.3s ease;
+}
+
+.file-manager-container.open {
+  left: 50px;                // slide in just under the 50px toolbar
+}
+
+.file-manager-header{
+  @include flex-center;
+  gap: 30px;
+  background-color: rgb(54, 54, 54);
+  width: 100%;
+  height: 50px;
+}
+
+.file-manager-header button{
+  background: none;
+  border: none;
+}
+
+.file-manager-header img{
+  width: 80px;
+}

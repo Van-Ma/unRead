@@ -1,3 +1,5 @@
+
+
 // Auto-reload for development
 require('electron-reload')(__dirname, {
   electron: require(`${__dirname}/node_modules/electron`),
@@ -28,12 +30,12 @@ function createWindow() {
 
   Menu.setApplicationMenu(null);
 }
-
 app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
+
 
 // IPC handlers for secure token storage
 ipcMain.handle('save-token', async (event, token) => {

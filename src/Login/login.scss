@@ -1,0 +1,160 @@
+@import '../_mixins';
+
+button {
+    cursor: pointer;
+}
+
+.user-authentication-page{
+    @include flex-center;
+    position: relative;
+    padding-top: 10%;
+    font-family: monospace;
+}
+
+.landing-container{
+    @include flex-center;
+    margin: 0 auto;
+    flex-direction: column;
+    width: 100%;
+    z-index: 0;
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.landing-container img{
+    width: 50%;
+    max-width: 800px;
+}
+
+.landing-container h1{
+    @include flex-center;
+    color: white;
+    width: 100%;
+}
+
+.login-form,
+.signup-form {
+    @include flex-center;
+    margin: 0 auto;
+    background-color: $color-body;
+    border-right: 3px solid $color-highlight;
+    border-bottom: 3px solid black;
+    width: 60%;
+    height: 70vh;
+    flex-direction: column;
+    position: relative;
+    max-width: 600px;
+    z-index: 1;
+    padding-top: 50px;
+    transition: all 0.3s ease;  
+}
+
+.login-header {
+    @include flex-center;
+    color: white;
+    flex-direction: row;
+    background-color: $color-header;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    justify-content: space-between;
+    padding: 15px;
+}
+
+.login-header-btns {
+    display: flex;
+    gap: 20px;
+}
+
+.login-header-btns img {
+    width: 25px;
+}
+
+.login-header button {
+    width: 30px;
+    height: 30px;
+    background: none;
+}
+
+.social-media-login{
+    border-bottom: 2px solid white;
+    width: 60%;
+    margin-bottom: 10%;
+}
+
+#login-google-btn {
+    @include auth-button;
+    @include flex-center;
+    gap: 15px;
+    margin-bottom: 15%;
+    width: 100%;
+    min-width: 250px;
+}
+
+#login-google-btn img {
+    width: 20px;
+}
+
+.login-form input, .signup-form input{
+    @include auth-input;
+}
+
+.input-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 60%;
+  margin-right: 40px;
+
+  img {
+    width: 30px;
+    height: 30px;
+    margin-bottom: 10px;
+  }
+
+  input {
+    flex: 1;
+    @include auth-input; 
+  }
+}
+
+.login-no-account {
+    @include flex-center;
+    margin-top: 10%;
+    gap: 20px;
+    color: white;
+}
+
+.login-no-account button{
+    color: #20B4AE;
+    font-weight: bold;
+    background: none;
+    border: none;
+}
+
+/* minimized form ---------------------*/
+.auth-form.minimized {
+    width: 200px;   
+    height: 60px;      
+    padding: 5px 10px;
+    margin: 0;         
+    border-radius: 0 0 8px 8px;
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.auth-form.minimized .login-header,
+.auth-form.minimized .signup-header,
+.auth-form.minimized header {
+    width: 100%;      
+    padding: 5px 10px; 
+}
+
+.auth-form.minimized .social-media-login,
+.auth-form.minimized input,
+.auth-form.minimized .login-no-account {
+    display: none;     
+}
+
