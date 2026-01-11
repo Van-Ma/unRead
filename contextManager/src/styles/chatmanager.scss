@@ -1,10 +1,24 @@
 $primary-color: #003051;
 $accent-color: #20B4AE;
+$interactive-color: #84BB2E;
 
+.chat-page{
+    display: flex;
+    align-items: left;
+    justify-content: center;
+    width: 100vw;
+}
+.context-viewer{
+    margin: 3vh;
+    width: 40%;
+    border: 2px solid $interactive-color;
+    padding: 1rem;
+    box-sizing: border-box;
+    height: 80vh;
+     border-radius: 8px;
+}
 .chat-container {
-    width: 90%;
-    max-width: 1000px;
-    min-width: 350px;
+    width: 60%;
     height: 80vh;
     margin: 0 auto;
     padding: 1rem;
@@ -66,5 +80,8 @@ $accent-color: #20B4AE;
     &:disabled {
         opacity: 0.6;
         cursor: not-allowed;
+    }
+    &:hover{
+        border: 2px solid $interactive-color;
     }
 }

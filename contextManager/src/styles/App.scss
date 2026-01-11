@@ -1,0 +1,38 @@
+$primary-color: #003051;
+$accent-color: #20B4AE;
+$interactive-color: #84BB2E;
+
+@mixin flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.app-container {
+  @include flex-center;
+  width: 100%;
+  margin: 2vh auto;
+  flex-direction: column;
+}
+
+.tab-bar{
+  width: 100%;
+  margin-left: 3vw;
+  button{
+    margin-right: 0.5rem;
+    background: none;
+    border: 2px solid grey;
+    border-bottom: none;
+    border-radius: 5px 5px 0px 0px;
+    padding: 5px 10px;
+    cursor: pointer;
+    &:hover{
+      background-color: $primary-color;
+    }
+    &.active {
+      background-color: $primary-color; 
+          border: 2px solid $accent-color;
+          border-bottom: none;
+    }
+  }
+}

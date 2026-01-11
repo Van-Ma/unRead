@@ -49,39 +49,45 @@ export default function ChatManager() {
   };
 
   return (
-    <div className="chat-container">
-      {/* chat box */}
-      <div className="chat-box">
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`message ${msg.role}`}
-          >
-            {msg.content}
-          </div>
-        ))}
-        {loading && (
-          <div className="message assistant">Thinking…</div>
-        )}
+    <div className="chat-page">
+      <div className="context-viewer">
+        <p>current context in chat</p>
       </div>
+      <div className="chat-container">
+        {/* chat box */}
+        <div className="chat-box">
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              className={`message ${msg.role}`}
+            >
+              {msg.content}
+            </div>
+          ))}
+          {loading && (
+            <div className="message assistant">Thinking…</div>
+          )}
+        </div>
 
-      {/* prompt input box */}
-      <textarea
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="Type a message…"
-        className="chat-textarea"
-      />
+        {/* prompt input box */}
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Type a message…"
+          className="chat-textarea"
+        />
 
-      {/* send button */}
-      <button
-        onClick={sendMessage}
-        disabled={loading}
-        className="chat-button"
-      >
-        {loading ? "Sending…" : "Send"}
-      </button>
+        {/* send button */}
+        <button
+          onClick={sendMessage}
+          disabled={loading}
+          className="chat-button"
+        >
+          {loading ? "Sending…" : "Send"}
+        </button>
+      </div>
     </div>
+
   );
 }
