@@ -3,96 +3,80 @@ $accent-color: #20B4AE;
 $interactive-color: #84BB2E;
 
 @mixin flex-center {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .file-page {
-    display: flex;
-    flex-direction: row;
-    margin: 2vh auto;
-    gap: 5%;
-    width: 95vw;
+  display: flex;
+  flex-direction: row;
+  margin: 2vh auto;
+  gap: 5%;
+  width: 95vw;
 }
 
 .file-manager {
-    display: flex;
-    flex-direction: column;
-    height: 80vh;
-    width: 45%;
-    border-radius: 8px;
-    gap: 2vh;
+  display: flex;
+  flex-direction: column;
+  height: 80vh;
+  width: 45%;
+  border-radius: 8px;
+  gap: 2vh;
+
 }
 
 .file-editor {
-    height: 68vh;
-    border: 2px solid $interactive-color;
-    border-radius: 8px;
-    padding: 10px 1rem;
-    box-sizing: border-box;
-      overflow-y: auto;
-  // file content
+  height: 68vh;
+  border: 2px solid $interactive-color;
+  border-radius: 8px;
+  padding: 10px 1rem;
+  box-sizing: border-box;
+  overflow-y: auto;
+  background-color: rgb(234, 234, 226);
+
   p {
     width: 100%;
     white-space: pre-wrap;
+    overflow-wrap: break-word;
+    word-break: break-word;
     font-size: 0.8rem;
     line-height: 2;
+    color: black;
   }
-}
-
-.file-list {
-  display: flex;
-  flex-direction: column; 
-  overflow-wrap: break-word; 
-  word-break: break-word;     
-
-  li {
-    width: 100%;
-    white-space: pre-wrap; 
-    word-wrap: break-word; 
-  }
-
-}
-
-.context-manager {
-    height: 80vh;
-    width: 50%;
-    border: 2px solid $interactive-color;
-    border-radius: 8px;
 }
 
 .file-toolbar {
-    @include flex-center;
-    height: 10vh;
-    background: #1f2937;
-    border: 2px solid $accent-color;
-    padding: 20px;
-    box-sizing: border-box;
+  @include flex-center;
+  height: 10vh;
+  background: #1f2937;
+  border: 2px solid $accent-color;
+  padding: 20px;
+  box-sizing: border-box;
+
+  img {
+    max-height: 4rem;
+  }
+
+  button {
+    background: none;
+    border: none;
+
+    &:hover {
+      transform: scale(1.2);
+    }
+  }
+
+  @media(max-width: 700px) {
 
     img {
-        max-height: 4rem;
+      max-height: 2.5rem;
     }
-
-    button {
-        background: none;
-        border: none;
-
-        &:hover {
-            transform: scale(1.2);
-        }
-    }
-
-    @media(max-width: 700px) {
-
-        img {
-            max-height: 2.5rem;
-        }
-    }
+  }
 }
 
 .file-toolbar button.active-tool img {
-  transform: scale(1.4); 
+  transform: scale(1.4);
 }
 
 .file-tabs {
@@ -105,10 +89,12 @@ $interactive-color: #84BB2E;
   &::-webkit-scrollbar {
     height: 3px;
   }
+
   &::-webkit-scrollbar-thumb {
-    background-color: $accent-color;
+    background-color: #F78D29;
     border-radius: 3px;
   }
+
   &::-webkit-scrollbar-track {
     background: transparent;
   }
@@ -128,7 +114,7 @@ $interactive-color: #84BB2E;
     max-width: 200px;
 
     &.active {
-      background: $primary-color;
+      background: #DE2E35;
       color: white;
     }
 
@@ -136,8 +122,8 @@ $interactive-color: #84BB2E;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      max-width: calc(100% - 1.5rem); 
-      margin-right: 1.5rem; 
+      max-width: calc(100% - 1.5rem);
+      margin-right: 1.5rem;
     }
 
     .close-tab {
@@ -155,3 +141,72 @@ $interactive-color: #84BB2E;
   }
 }
 
+//----------------------------------------- context creator
+.context-creation {
+  height: 80vh;
+  width: 50%;
+  border: 2px solid $interactive-color;
+  border-radius: 8px;
+  padding: 1rem;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.context-directory {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  height: 5vh;
+  background-color: #F78D29;
+  border-radius: 5px;
+
+  input {
+    flex: 1;
+    height: 100%;
+    box-sizing: border-box;
+    padding-left: 10px;
+    min-width: 0; 
+    font-family: monospace;
+  }
+
+  button {
+    height: 100%;
+    min-height: 0;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+  }
+
+  img {
+    max-height: 100%;
+    width: auto;
+    display: block;
+  }
+}
+
+.context-snippet{
+  position: relative;
+  padding: 2rem;
+  background-color: rgb(63, 63, 63);
+  border: 2px solid $accent-color;
+  margin-top: 5vh;
+
+  span {
+    flex: 1;
+    word-break: break-word;
+  }
+
+  .close-snippet {
+    position: absolute;
+    top: 0px;
+    right: 6px;
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    color: $interactive-color;
+  }
+}

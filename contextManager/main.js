@@ -32,10 +32,8 @@ app.whenReady().then(createWindow);
 ipcMain.handle("dialog:openFile", async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
     properties: ["openFile", "multiSelections"],
-    filters: [
-      { name: "Text Files", extensions: ["txt"] },
-      { name: "Word Documents", extensions: ["doc", "docx"] },
-    ]
+   filters: [{ name: "Documents", extensions: ["txt", "docx", "doc"] }]
+
   });
 
   if (canceled) return null;
