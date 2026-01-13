@@ -1,7 +1,9 @@
 import { useState } from "react";
 import '../styles/chatmanager.scss';
+import '../styles/filemanager.scss';
+import ContextManager from './ContextManager';
 
-export default function ChatManager() {
+export default function ChatManager({ folders, activeTab }) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -50,9 +52,6 @@ export default function ChatManager() {
 
   return (
     <div className="chat-page">
-      <div className="context-viewer">
-        <p>current context in chat</p>
-      </div>
       <div className="chat-container">
         {/* chat box */}
         <div className="chat-box">
@@ -86,6 +85,9 @@ export default function ChatManager() {
         >
           {loading ? "Sending…" : "Send"}
         </button>
+      </div>
+      <div className="context-viewer">
+        <ContextManager folders={folders} activeTab={activeTab} />
       </div>
     </div>
 

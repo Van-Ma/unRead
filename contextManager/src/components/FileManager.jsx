@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ContextManager from "./ContextManager";
 import '../styles/filemanager.scss';
 
 export default function FileManager({ folders, setFolders }) {
@@ -25,7 +26,7 @@ export default function FileManager({ folders, setFolders }) {
     }
   };
 
-  // text selection
+  // text selection for new context
   const handleTextSelection = () => {
     if (activeTool !== "highlight") return;
 
@@ -39,13 +40,13 @@ export default function FileManager({ folders, setFolders }) {
     selection.removeAllRanges();
   };
 
-  // highlight text in editor
+  // highlight only unsaved selectedContexts
   const highlightText = (text) => {
-    const allSnippets = [...folders.flatMap(f => f.snippets), ...selectedContexts];
-    if (allSnippets.length === 0) return text;
+    if (selectedContexts.length === 0) return text;
 
     let parts = [text];
-    allSnippets.forEach((snippet) => {
+
+    selectedContexts.forEach((snippet) => {
       const newParts = [];
       parts.forEach((part) => {
         if (typeof part === "string") {
@@ -54,7 +55,7 @@ export default function FileManager({ folders, setFolders }) {
             newParts.push(s);
             if (i < split.length - 1) {
               newParts.push(
-                <mark key={Math.random()} style={{ backgroundColor: "#FDA912" }}>
+                <mark key={Math.random()} style={{ backgroundColor: "#FFBE48" }}>
                   {snippet}
                 </mark>
               );
@@ -70,14 +71,12 @@ export default function FileManager({ folders, setFolders }) {
     return parts;
   };
 
-  // remove selected snippet
+  // remove individual snippet from selectedContexts
   const removeContextSnippet = (indexToRemove) => {
-    setSelectedContexts((prev) =>
-      prev.filter((_, idx) => idx !== indexToRemove)
-    );
+    setSelectedContexts((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
-  // submit context 
+  // create new folder and clear highlights
   const createFolder = () => {
     if (!contextName.trim() || selectedContexts.length === 0) return;
 
@@ -85,11 +84,11 @@ export default function FileManager({ folders, setFolders }) {
       id: Date.now(),
       name: contextName.trim(),
       snippets: selectedContexts,
-      color: "#FDA912",
     };
 
-    // Use setFolders from App
     setFolders((prev) => [...prev, newFolder]);
+
+    // clear all input and highlights
     setContextName("");
     setSelectedContexts([]);
   };
@@ -97,9 +96,6 @@ export default function FileManager({ folders, setFolders }) {
   const handleContextSubmit = (e) => {
     if (e.key === "Enter") createFolder();
   };
-
-
-
 
   // close file tab
   const handleCloseFile = (pathToRemove) => {
@@ -112,7 +108,7 @@ export default function FileManager({ folders, setFolders }) {
     });
   };
 
-  // toggle active tool
+  // toggle toolbar tools
   const toggleTool = (toolName) => {
     setActiveTool((prev) => (prev === toolName ? null : toolName));
   };
@@ -122,7 +118,7 @@ export default function FileManager({ folders, setFolders }) {
   return (
     <div className="file-page">
       <div className="file-manager">
-        {/* Toolbar */}
+        {/* toolbar */}
         <div className="file-toolbar">
           <button onClick={handleAddFile}>
             <img src="/workspace/addfile2.png" alt="Add File" />
@@ -141,7 +137,7 @@ export default function FileManager({ folders, setFolders }) {
           </button>
         </div>
 
-        {/* Tabs */}
+        {/* tabs */}
         <div className="file-tabs">
           {files.map((file) => {
             const fileName = file.path.split(/[/\\]/).pop();
@@ -153,13 +149,15 @@ export default function FileManager({ folders, setFolders }) {
                 <span className="tab-text" onClick={() => setActiveFile(file.path)}>
                   {fileName}
                 </span>
-                <button className="close-tab" onClick={() => handleCloseFile(file.path)}>×</button>
+                <button className="close-tab" onClick={() => handleCloseFile(file.path)}>
+                  ×
+                </button>
               </div>
             );
           })}
         </div>
 
-        {/* Editor */}
+        {/* editor */}
         <div className="file-editor" onMouseUp={handleTextSelection}>
           {activeFileContent ? (
             <p>{highlightText(activeFileContent.content)}</p>
@@ -169,37 +167,45 @@ export default function FileManager({ folders, setFolders }) {
         </div>
       </div>
 
-      {/* Context Creation */}
+      {/* context creation */}
       <div className="context-creation">
-        <div className="context-directory">
-          <input
-            type="text"
-            placeholder="Name this context…"
-            value={contextName}
-            onChange={(e) => setContextName(e.target.value)}
-            onKeyDown={handleContextSubmit}
-          />
-          <button onClick={createFolder}>
-            <img src="/workspace/folder.png" alt="context" />
-          </button>
-        </div>
+        <div className="context-manager">
+          <ContextManager folders={folders} />
 
-        <div className="selected-text">
-          {selectedContexts.length === 0 ? (
-            <p className="empty-context">No context selected.</p>
-          ) : (
-            selectedContexts.map((text, idx) => (
-              <div key={idx} className="context-snippet">
-                <span>{text}</span>
-                <button
-                  className="close-snippet"
-                  onClick={() => removeContextSnippet(idx)}
-                >
-                  ×
-                </button>
-              </div>
-            ))
-          )}
+          <div className="context-content">
+            <div className="context-directory">
+              <input
+                type="text"
+                placeholder="Name this context…"
+                value={contextName}
+                onChange={(e) => setContextName(e.target.value)}
+                onKeyDown={handleContextSubmit}
+              />
+              <button onClick={createFolder}>
+                <img src="/workspace/folder.png" alt="context" />
+              </button>
+            </div>
+
+            <div className="selected-text">
+              {selectedContexts.length === 0 ? (
+                <p className="empty-context">
+                  Use the highlighter tool to select text for context.
+                </p>
+              ) : (
+                selectedContexts.map((text, idx) => (
+                  <div key={idx} className="context-snippet">
+                    <span>{text}</span>
+                    <button
+                      className="close-snippet"
+                      onClick={() => removeContextSnippet(idx)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

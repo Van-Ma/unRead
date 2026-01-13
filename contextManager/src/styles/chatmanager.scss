@@ -2,21 +2,13 @@ $primary-color: #003051;
 $accent-color: #20B4AE;
 $interactive-color: #84BB2E;
 
-.chat-page{
+.chat-page {
     display: flex;
     align-items: left;
     justify-content: center;
-    width: 100vw;
+    width: 90vw;
 }
-.context-viewer{
-    margin: 3vh;
-    width: 40%;
-    border: 2px solid $interactive-color;
-    padding: 1rem;
-    box-sizing: border-box;
-    height: 80vh;
-     border-radius: 8px;
-}
+
 .chat-container {
     width: 60%;
     height: 80vh;
@@ -26,6 +18,7 @@ $interactive-color: #84BB2E;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    box-sizing: border-box;
 }
 
 .chat-box {
@@ -35,8 +28,9 @@ $interactive-color: #84BB2E;
     padding: 2rem;
     border-radius: 8px;
     background: #080c17;
-    min-height: 300px;
+    height: 60vh;
     overflow-y: auto;
+    box-sizing: border-box;
 }
 
 .message {
@@ -45,6 +39,7 @@ $interactive-color: #84BB2E;
     border-radius: 8px;
     max-width: 80%;
     white-space: pre-wrap;
+
 
     &.user {
         align-self: flex-end;
@@ -65,6 +60,7 @@ $interactive-color: #84BB2E;
     border-radius: 6px;
     border: 1px solid #ccc;
     font-size: 1rem;
+    height: 20vh;
 }
 
 .chat-button {
@@ -81,7 +77,8 @@ $interactive-color: #84BB2E;
         opacity: 0.6;
         cursor: not-allowed;
     }
-    &:hover{
+
+    &:hover {
         border: 2px solid $interactive-color;
     }
 }

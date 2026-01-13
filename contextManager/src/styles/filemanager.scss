@@ -143,13 +143,26 @@ $interactive-color: #84BB2E;
 
 //----------------------------------------- context creator
 .context-creation {
-  height: 80vh;
+  height: auto;
   width: 50%;
-  border: 2px solid $interactive-color;
   border-radius: 8px;
-  padding: 1rem;
   box-sizing: border-box;
   overflow-y: auto;
+}
+
+.context-content {
+  padding: 1rem;
+  border: 2px solid $interactive-color;
+  border-radius: 8px;
+  margin-top: 5vh;
+  padding-bottom: 10vh;
+}
+
+.context-manager {
+  width: 100%;
+  padding: 0px;
+  box-sizing: border-box;
+  height: 80vh;
 }
 
 .context-directory {
@@ -165,7 +178,7 @@ $interactive-color: #84BB2E;
     height: 100%;
     box-sizing: border-box;
     padding-left: 10px;
-    min-width: 0; 
+    min-width: 0;
     font-family: monospace;
   }
 
@@ -187,7 +200,7 @@ $interactive-color: #84BB2E;
   }
 }
 
-.context-snippet{
+.context-snippet {
   position: relative;
   padding: 2rem;
   background-color: rgb(63, 63, 63);
@@ -208,5 +221,70 @@ $interactive-color: #84BB2E;
     font-size: 2rem;
     cursor: pointer;
     color: $interactive-color;
+  }
+}
+
+.context-viewer {
+  width: 40%;
+  border: 2px solid $interactive-color;
+  box-sizing: border-box;
+  height: 80vh;
+  border-radius: 8px;
+}
+
+.folder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+  background: #080c17;
+  box-sizing: border-box;
+  gap: 20px;
+  padding: 1rem;
+  border: 2px solid $interactive-color;
+  border-radius: 8px;
+  height: 30vh;
+  overflow-y: auto;
+}
+
+.chat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+  gap: 20px;
+  background: #080c17;
+  box-sizing: border-box;
+  padding: 1rem;
+  height: 100%;
+  overflow-y: auto;
+  border-radius: 8px;
+}
+
+.folder-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  position: relative;
+}
+
+.folder {
+  @include flex-center;
+  flex-direction: column;
+  width: 50px;
+  height: 50px;
+  padding: 5px;
+  cursor: pointer;
+  border-radius: 5px;
+  background-color: $primary-color;
+  text-align: center;
+
+  img {
+    width: 25px;
+    height: 25px;
+    margin-bottom: 5px;
+  }
+
+  .folder-name {
+    font-size: 0.7rem;
+    color: white;
+    word-break: break-word;
   }
 }
