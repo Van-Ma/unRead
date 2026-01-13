@@ -4,8 +4,9 @@ import FileManager from "./components/FileManager";
 import './styles/App.scss';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState("chat");
-  const [folders, setFolders] = useState([]);
+  const [activeTab, setActiveTab] = useState("chat");     
+  const [folders, setFolders] = useState([]);         
+  const [activeFolderId, setActiveFolderId] = useState(null); 
 
   return (
     <div className="app-container">
@@ -22,17 +23,31 @@ export default function App() {
         >
           Chat
         </button>
-
       </nav>
 
       <div className="tab-content">
+        {/* File Manager */}
         <div style={{ display: activeTab === "files" ? "block" : "none" }}>
-          <FileManager folders={folders} setFolders={setFolders} activeTab={activeTab} />
-        </div>
-        <div style={{ display: activeTab === "chat" ? "block" : "none" }}>
-          <ChatManager folders={folders} activeTab={activeTab} />
+          <FileManager
+            folders={folders}
+            setFolders={setFolders}
+            activeTab={activeTab}
+            activeFolderId={activeFolderId}
+            setActiveFolderId={setActiveFolderId} 
+          />
         </div>
 
+        {/* Chat Manager */}
+        <div style={{ display: activeTab === "chat" ? "block" : "none" }}>
+          <ChatManager
+            folders={folders}
+            setFolders={setFolders}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}          
+            activeFolderId={activeFolderId}
+            setActiveFolderId={setActiveFolderId} 
+          />
+        </div>
       </div>
     </div>
   );

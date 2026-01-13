@@ -19,7 +19,7 @@ $interactive-color: #84BB2E;
 .file-manager {
   display: flex;
   flex-direction: column;
-  height: 80vh;
+  height: 90vh;
   width: 45%;
   border-radius: 8px;
   gap: 2vh;
@@ -28,8 +28,7 @@ $interactive-color: #84BB2E;
 
 .file-editor {
   height: 68vh;
-  border: 2px solid $interactive-color;
-  border-radius: 8px;
+  border: 2px solid $accent-color;
   padding: 10px 1rem;
   box-sizing: border-box;
   overflow-y: auto;
@@ -141,71 +140,91 @@ $interactive-color: #84BB2E;
   }
 }
 
+.selected-text {
+  padding: 0 1.5rem;
+  font-size: 0.8rem;
+}
+
 //----------------------------------------- context creator
 .context-creation {
   height: auto;
   width: 50%;
   border-radius: 8px;
   box-sizing: border-box;
-  overflow-y: auto;
-}
-
-.context-content {
-  padding: 1rem;
-  border: 2px solid $interactive-color;
-  border-radius: 8px;
-  margin-top: 5vh;
-  padding-bottom: 10vh;
+  overflow-y: hidden;
 }
 
 .context-manager {
   width: 100%;
   padding: 0px;
   box-sizing: border-box;
-  height: 80vh;
+  height: 90vh;
+}
+
+.context-content {
+  border: 2px solid $accent-color;
+  border-radius: 8px;
+  margin-top: 1.5vh;
+  height: 50vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #080c17;
+  overflow-x: hidden;
 }
 
 .context-directory {
-  display: flex;
-  align-items: stretch;
+  position: sticky;
+  top: 0;
+  z-index: 10;
   width: 100%;
-  height: 5vh;
-  background-color: #F78D29;
-  border-radius: 5px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: 7vh;
+  padding: 1rem 3vw;
+  box-sizing: border-box;
+  background-color: #242424;
+  border-bottom: 2px solid rgb(76, 76, 76);
 
   input {
     flex: 1;
     height: 100%;
-    box-sizing: border-box;
+    padding: 12px;
     padding-left: 10px;
-    min-width: 0;
+    box-sizing: border-box;
     font-family: monospace;
   }
 
   button {
+    flex: 0 0 48px;
     height: 100%;
-    min-height: 0;
-    min-width: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     background: none;
     border: none;
-  }
+    padding: 0;
 
-  img {
-    max-height: 100%;
-    width: auto;
-    display: block;
+    img {
+      height: 100%;
+      width: auto;
+      object-fit: contain;
+      display: block;
+    }
   }
 }
 
+
 .context-snippet {
-  position: relative;
-  padding: 2rem;
-  background-color: rgb(63, 63, 63);
-  border: 2px solid $accent-color;
-  margin-top: 5vh;
+    position: relative;
+    padding: 1rem 2rem;
+    background-color: rgb(36, 36, 36);
+    border-radius: 4px;    
+    overflow-wrap: break-word;
+    margin: 2vh 5px;  
 
   span {
     flex: 1;
@@ -224,37 +243,17 @@ $interactive-color: #84BB2E;
   }
 }
 
-.context-viewer {
-  width: 40%;
-  border: 2px solid $interactive-color;
-  box-sizing: border-box;
-  height: 80vh;
-  border-radius: 8px;
-}
-
 .folder-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
   background: #080c17;
   box-sizing: border-box;
   gap: 20px;
-  padding: 1rem;
-  border: 2px solid $interactive-color;
+  padding: 1.5rem;
+  border: 2px solid $accent-color;
   border-radius: 8px;
   height: 30vh;
   overflow-y: auto;
-}
-
-.chat-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
-  gap: 20px;
-  background: #080c17;
-  box-sizing: border-box;
-  padding: 1rem;
-  height: 100%;
-  overflow-y: auto;
-  border-radius: 8px;
 }
 
 .folder-wrapper {
@@ -268,13 +267,15 @@ $interactive-color: #84BB2E;
 .folder {
   @include flex-center;
   flex-direction: column;
-  width: 50px;
-  height: 50px;
+  width: 60px;
+  height: 60px;
   padding: 5px;
   cursor: pointer;
   border-radius: 5px;
   background-color: $primary-color;
   text-align: center;
+
+  box-sizing: border-box;
 
   img {
     width: 25px;
@@ -285,6 +286,35 @@ $interactive-color: #84BB2E;
   .folder-name {
     font-size: 0.7rem;
     color: white;
-    word-break: break-word;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    width: 100%;
   }
+}
+
+.active-folder {
+  border: 2px solid #DE2E35;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+
+.folder-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0px;
+  margin-top: 10px;
+}
+
+.folder-controls-btn {
+  @include flex-center;
+  background-color: $interactive-color;
+  color: black;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 25px;
+  font-size: 0.7rem;
+  margin-right: 10px;
+  cursor: pointer;
 }

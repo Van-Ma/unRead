@@ -1,32 +1,56 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ContextManager from "./ContextManager";
 import '../styles/filemanager.scss';
 
-export default function FileManager({ folders, setFolders }) {
+export default function FileManager({
+  folders,
+  setFolders,
+  activeFolderId,
+  setActiveFolderId
+}) {
   const [files, setFiles] = useState([]);
   const [activeFile, setActiveFile] = useState(null);
   const [activeTool, setActiveTool] = useState(null);
   const [contextName, setContextName] = useState("");
   const [selectedContexts, setSelectedContexts] = useState([]);
 
-  // add file
+  // sync active folder
+  useEffect(() => {
+    if (activeFolderId !== null) {
+      const folder = folders.find(f => f.id === activeFolderId);
+      if (folder) {
+        setSelectedContexts(folder.snippets || []);
+        setContextName(folder.name || "");
+        if (folder.filePath) setActiveFile(folder.filePath);
+      }
+    } else {
+      setSelectedContexts([]);
+      setContextName("");
+    }
+  }, [activeFolderId, folders]);
+
+  // file handling
   const handleAddFile = async () => {
     setActiveTool(null);
     const selectedFiles = await window.electronAPI.openFile();
-    if (selectedFiles && selectedFiles.length > 0) {
-      setFiles((prev) => {
-        const newFiles = selectedFiles.filter(
-          (f) => !prev.some((file) => file.path === f.path)
-        );
-        if (!activeFile && newFiles.length > 0) {
-          setActiveFile(newFiles[0].path);
-        }
-        return [...prev, ...newFiles];
-      });
-    }
+    if (!selectedFiles || selectedFiles.length === 0) return;
+
+    setFiles(prev => {
+      const newFiles = selectedFiles.filter(f => !prev.some(file => file.path === f.path));
+      if (!activeFile && newFiles.length > 0) setActiveFile(newFiles[0].path);
+      return [...prev, ...newFiles];
+    });
   };
 
-  // text selection for new context
+  const handleCloseFile = (pathToRemove) => {
+    setFiles(prev => {
+      const filtered = prev.filter(f => f.path !== pathToRemove);
+      if (activeFile === pathToRemove) setActiveFile(filtered.length > 0 ? filtered[0].path : null);
+      return filtered;
+    });
+  };
+
+  // highlighted context
   const handleTextSelection = () => {
     if (activeTool !== "highlight") return;
 
@@ -36,19 +60,31 @@ export default function FileManager({ folders, setFolders }) {
     const text = selection.toString().trim();
     if (!text) return;
 
-    setSelectedContexts((prev) => [...prev, text]);
+    setSelectedContexts(prev => {
+      const newContexts = [...prev, text];
+
+      // update when text added
+      if (activeFolderId !== null) {
+        setFolders(foldersPrev =>
+          foldersPrev.map(f =>
+            f.id === activeFolderId ? { ...f, snippets: newContexts } : f
+          )
+        );
+      }
+
+      return newContexts;
+    });
+
     selection.removeAllRanges();
   };
 
-  // highlight only unsaved selectedContexts
   const highlightText = (text) => {
     if (selectedContexts.length === 0) return text;
 
     let parts = [text];
-
-    selectedContexts.forEach((snippet) => {
+    selectedContexts.forEach(snippet => {
       const newParts = [];
-      parts.forEach((part) => {
+      parts.forEach(part => {
         if (typeof part === "string") {
           const split = part.split(snippet);
           split.forEach((s, i) => {
@@ -61,9 +97,7 @@ export default function FileManager({ folders, setFolders }) {
               );
             }
           });
-        } else {
-          newParts.push(part);
-        }
+        } else newParts.push(part);
       });
       parts = newParts;
     });
@@ -71,49 +105,94 @@ export default function FileManager({ folders, setFolders }) {
     return parts;
   };
 
-  // remove individual snippet from selectedContexts
   const removeContextSnippet = (indexToRemove) => {
-    setSelectedContexts((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    setSelectedContexts(prev => {
+      const newContexts = prev.filter((_, idx) => idx !== indexToRemove);
+
+      // update when removed
+      if (activeFolderId !== null) {
+        setFolders(foldersPrev =>
+          foldersPrev.map(f =>
+            f.id === activeFolderId ? { ...f, snippets: newContexts } : f
+          )
+        );
+      }
+
+      return newContexts;
+    });
   };
 
-  // create new folder and clear highlights
+  const handleAddContext = () => {
+    setActiveFolderId(null);
+    setSelectedContexts([]);
+    setContextName("");
+    setActiveTool(null);
+  };
+
+  // folder 
   const createFolder = () => {
-    if (!contextName.trim() || selectedContexts.length === 0) return;
+    if (!contextName.trim() || selectedContexts.length === 0 || !activeFile) return;
 
     const newFolder = {
       id: Date.now(),
       name: contextName.trim(),
       snippets: selectedContexts,
+      filePath: activeFile
     };
 
-    setFolders((prev) => [...prev, newFolder]);
-
-    // clear all input and highlights
+    setFolders(prev => [...prev, newFolder]);
     setContextName("");
     setSelectedContexts([]);
+    setActiveFolderId(newFolder.id);
   };
 
   const handleContextSubmit = (e) => {
     if (e.key === "Enter") createFolder();
   };
 
-  // close file tab
-  const handleCloseFile = (pathToRemove) => {
-    setFiles((prev) => {
-      const filtered = prev.filter((file) => file.path !== pathToRemove);
-      if (activeFile === pathToRemove) {
-        setActiveFile(filtered.length > 0 ? filtered[0].path : null);
+  const handleFolderClick = (snippets, folderId, filePath) => {
+    if (folderId === null) {
+      setActiveFolderId(null);
+      setSelectedContexts([]);
+      setContextName("");
+      return;
+    }
+
+    setActiveFolderId(folderId);
+
+    if (filePath) {
+      const existingFile = files.find(f => f.path === filePath);
+      if (existingFile) {
+        setActiveFile(filePath);
+        setSelectedContexts(snippets || []);
+      } else {
+        window.electronAPI.readFile(filePath)
+          .then(content => {
+            setFiles(prev => [...prev, { path: filePath, content }]);
+            setActiveFile(filePath);
+            setSelectedContexts(snippets || []);
+          });
       }
-      return filtered;
-    });
+    } else {
+      setSelectedContexts(snippets || []);
+    }
   };
 
-  // toggle toolbar tools
+  const handleDeleteFolder = (folderId) => {
+    setFolders(prev => prev.filter(f => f.id !== folderId));
+    if (activeFolderId === folderId) {
+      setActiveFolderId(null);
+      setSelectedContexts([]);
+      setContextName("");
+    }
+  };
+
+  // tool selection
   const toggleTool = (toolName) => {
-    setActiveTool((prev) => (prev === toolName ? null : toolName));
+    setActiveTool(prev => prev === toolName ? null : toolName);
   };
 
-  const activeFileContent = files.find((f) => f.path === activeFile);
+  const activeFileContent = files.find(f => f.path === activeFile);
 
   return (
     <div className="file-page">
@@ -139,7 +218,7 @@ export default function FileManager({ folders, setFolders }) {
 
         {/* tabs */}
         <div className="file-tabs">
-          {files.map((file) => {
+          {files.map(file => {
             const fileName = file.path.split(/[/\\]/).pop();
             return (
               <div
@@ -167,40 +246,50 @@ export default function FileManager({ folders, setFolders }) {
         </div>
       </div>
 
-      {/* context creation */}
+      {/* context manager */}
       <div className="context-creation">
         <div className="context-manager">
-          <ContextManager folders={folders} />
+          <ContextManager
+            folders={folders}
+            activeTab="files"
+            activeFolderId={activeFolderId}
+            onFolderClick={handleFolderClick}
+            onDeleteFolder={handleDeleteFolder}
+            onAddContext={handleAddContext}
+          />
 
+          {/* context */}
           <div className="context-content">
             <div className="context-directory">
               <input
                 type="text"
                 placeholder="Name this context…"
                 value={contextName}
-                onChange={(e) => setContextName(e.target.value)}
+                onChange={e => setContextName(e.target.value)}
+                onBlur={() => {
+                  if (activeFolderId !== null) {
+                    setFolders(prev =>
+                      prev.map(f =>
+                        f.id === activeFolderId ? { ...f, name: contextName } : f
+                      )
+                    );
+                  }
+                }}
                 onKeyDown={handleContextSubmit}
               />
-              <button onClick={createFolder}>
+              <button onClick={() => { if (!activeFolderId) createFolder(); }}>
                 <img src="/workspace/folder.png" alt="context" />
               </button>
             </div>
 
             <div className="selected-text">
               {selectedContexts.length === 0 ? (
-                <p className="empty-context">
-                  Use the highlighter tool to select text for context.
-                </p>
+                <p className="empty-context">Use the highlighter tool to select text for context.</p>
               ) : (
                 selectedContexts.map((text, idx) => (
                   <div key={idx} className="context-snippet">
                     <span>{text}</span>
-                    <button
-                      className="close-snippet"
-                      onClick={() => removeContextSnippet(idx)}
-                    >
-                      ×
-                    </button>
+                    <button className="close-snippet" onClick={() => removeContextSnippet(idx)}>×</button>
                   </div>
                 ))
               )}

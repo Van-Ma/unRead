@@ -11,7 +11,7 @@ $interactive-color: #84BB2E;
 
 .chat-container {
     width: 60%;
-    height: 80vh;
+    height: 90vh;
     margin: 0 auto;
     padding: 1rem;
     font-family: monospace, sans-serif;
@@ -82,3 +82,54 @@ $interactive-color: #84BB2E;
         border: 2px solid $interactive-color;
     }
 }
+
+
+.chat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+    gap: 20px;
+    background: #080c17;
+    box-sizing: border-box;
+    padding: 1.5rem;
+    height: 30vh;
+    overflow-y: auto;
+    border-radius: 8px 8px 0px 0px;
+    border-bottom: 2px solid $accent-color;
+    
+}
+
+.context-viewer {
+    width: 40%;
+    border: 2px solid $accent-color;
+    box-sizing: border-box;
+    height: 90vh;
+    border-radius: 8px;
+    overflow: hidden;
+
+    display: flex;        
+    flex-direction: column;  
+}
+
+.selected-context {
+    font-size: 0.8rem;
+    margin-top: 0.5rem;    
+    flex: 1;                
+    overflow-y: auto;
+    border-top: 2px solid $accent-color;
+    background: #080c17;
+    padding: 1rem;       
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;       
+}
+
+
+.chat-context {
+    position: relative;
+    padding: 0.8rem 1rem;
+    background-color: rgb(36, 36, 36);
+    border-radius: 4px;    
+    overflow-wrap: break-word;
+    margin: 0;             
+}
+
