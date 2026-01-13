@@ -4,15 +4,56 @@ import ContextManager from './ContextManager';
 
 export default function ChatManager({
   folders,
-  setFolders,      
-  setActiveTab,     
-  activeFolderId,   
-  setActiveFolderId 
+  setFolders,
+  setActiveTab,
+  activeFolderId,
+  setActiveFolderId
 }) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedSnippets, setSelectedSnippets] = useState([]);
+  const [conversationHistory, setConversationHistory] = useState([]);
+
+  // sync selected text when folder changes
+  useEffect(() => {
+    if (activeFolderId !== null) {
+      const folder = folders.find(f => f.id === activeFolderId);
+      const snippets = folder?.snippets || [];
+      setSelectedSnippets(snippets);
+
+      // system prompt only gets answers directly from text
+      setConversationHistory([
+        {
+          role: "system",
+          content: `You must answer questions using ONLY the context provided below.
+Do NOT assume or invent any information outside the context.
+You MAY reason and infer answers directly from the context, for example if the context says 
+"funnel-shaped," you can answer "No, it is funnel-shaped" to a yes/no question.
+If the answer cannot be derived at all from the context, respond with "I cannot answer based on the provided context."
+
+
+Folder context:
+${snippets.map((s, i) => `${i + 1}. ${s}`).join("\n")}`
+        }
+      ]);
+
+      setMessages([]);
+    } else {
+      setSelectedSnippets([]);
+      setConversationHistory([
+        {
+          role: "system",
+          content: `You must answer questions using ONLY the context provided below.
+Do NOT assume or invent any information outside the context.
+You MAY reason and infer answers directly from the context, for example if the context says 
+"funnel-shaped," you can answer "No, it is funnel-shaped" to a yes/no question.
+If the answer cannot be derived at all from the context, respond with "I cannot answer based on the provided context."`
+        }
+      ]);
+      setMessages([]);
+    }
+  }, [activeFolderId, folders]);
 
   // send message
   const sendMessage = async () => {
@@ -23,45 +64,31 @@ export default function ChatManager({
     setInput("");
     setLoading(true);
 
+    // build messages for API: folder context + last 10 conversation turns
+    const messagesToSend = [...conversationHistory, userMessage];
+
     try {
       const res = await fetch("http://127.0.0.1:5000/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: input }),
+        body: JSON.stringify({ messages: messagesToSend }),
       });
 
       const data = await res.json();
-      setMessages(prev => [...prev, { role: "assistant", content: data.response || "No response from model." }]);
+      const aiMessage = { role: "assistant", content: data.response || "No response from model." };
+
+      // update conversation history, keep last 10 messages only
+      setConversationHistory(prev => {
+        const combined = [...prev, userMessage, aiMessage];
+        return combined.slice(-10);
+      });
+
+      setMessages(prev => [...prev, aiMessage]);
     } catch {
-      setMessages(prev => [...prev, { role: "assistant", content: "⚠️ Error connecting to server." }]);
+      const errorMsg = { role: "assistant", content: "⚠️ Error connecting to server." };
+      setMessages(prev => [...prev, errorMsg]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  // folder selection
- const handleFolderClick = (snippets, folderId) => {
-
-  if (folderId === activeFolderId) {
-    setActiveFolderId(null);
-    setSelectedSnippets([]);
-    return;
-  }
-  setActiveFolderId(folderId);
-};
-
-  // switch to file tab and set active folder centrally
-  const handleEditFolder = (folderId) => {
-    setActiveFolderId(folderId);
-    setActiveTab("files");       
-  };
-
-  // delete folder
-  const handleDeleteFolder = (folderId) => {
-    setFolders(prev => prev.filter(f => f.id !== folderId));
-    if (activeFolderId === folderId) {
-      setActiveFolderId(null);
-      setSelectedSnippets([]);
     }
   };
 
@@ -73,15 +100,51 @@ export default function ChatManager({
     }
   };
 
-// sync selected text
-  useEffect(() => {
-  if (activeFolderId !== null) {
-    const folder = folders.find(f => f.id === activeFolderId);
-    setSelectedSnippets(folder?.snippets || []);
-  } else {
+  // folder selection
+  const handleFolderClick = (snippets, folderId) => {
+    if (folderId === activeFolderId) {
+      setActiveFolderId(null);
+      setSelectedSnippets([]);
+      return;
+    }
+    setActiveFolderId(folderId);
+  };
+
+  // switch to file tab
+  const handleEditFolder = (folderId) => {
+    setActiveFolderId(folderId);
+    setActiveTab("files");
+  };
+
+  // delete folder
+  const handleDeleteFolder = (folderId) => {
+    setFolders(prev => prev.filter(f => f.id !== folderId));
+    if (activeFolderId === folderId) {
+      setActiveFolderId(null);
+      setSelectedSnippets([]);
+    }
+  };
+
+  // start new chat session manually
+  const startNewSession = () => {
+    setConversationHistory([
+      {
+        role: "system",
+        content: `You must answer questions using ONLY the context provided below.
+Do NOT assume or invent any information outside the context.
+You MAY reason and infer answers directly from the context, for example if the context says 
+"funnel-shaped," you can answer "No, it is funnel-shaped" to a yes/no question.
+If the answer cannot be derived at all from the context, respond with "I cannot answer based on the provided context."
+
+Folder context:
+${selectedSnippets.map((s, i) => `${i + 1}. ${s}`).join("\n")}`
+      }
+    ]);
+    setMessages([]);
+    setInput("");
+    setActiveFolderId(null);
     setSelectedSnippets([]);
-  }
-}, [activeFolderId, folders]);
+  };
 
   return (
     <div className="chat-page">
@@ -107,6 +170,11 @@ export default function ChatManager({
         <button onClick={sendMessage} disabled={loading} className="chat-button">
           {loading ? "Sending…" : "Send"}
         </button>
+
+        {/* new session button */}
+        <button onClick={startNewSession} className="new-session-button">
+          New Chat Session
+        </button>
       </div>
 
       {/* context manager */}
@@ -118,16 +186,14 @@ export default function ChatManager({
           onFolderClick={handleFolderClick}
           onDeleteFolder={handleDeleteFolder}
           onEditFolder={handleEditFolder}
-          
         />
-        
-        {/* context */}
+
+        {/* context display */}
         <div className="selected-context">
           {selectedSnippets.map((snippet, idx) => (
             <div key={idx} className="chat-context">{snippet}</div>
           ))}
         </div>
-
       </div>
     </div>
   );

@@ -16,28 +16,38 @@ client = InferenceClient(
     token=HF_API_TOKEN,
 )
 
-# chat 
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.json
-    prompt = data.get("prompt", "")
+    messages = data.get("messages", [])
 
-    if not prompt:
+    if not messages:
         return jsonify({"response": ""})
+
+    # clean chat log
+    print("\n=== Chat Log ===")
+    seen = set()
+    for i, msg in enumerate(messages, 1):
+        role = msg.get("role", "unknown").upper()
+        content = msg.get("content", "").strip()
+
+        # skip duplicates
+        key = f"{role}:{content}"
+        if key in seen:
+            continue
+        seen.add(key)
+
+        print(f"{i}. {role}: {content}")
+    print("================\n")
 
     try:
         result = client.chat_completion(
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": prompt},
-            ],
+            messages=messages,
             max_tokens=200,
             temperature=0.7,
         )
-
-        reply = result.choices[0].message.content
+        reply = result.choices[0].message.content.strip()
         return jsonify({"response": reply})
-
     except Exception as e:
         return jsonify({"response": f"Error: {str(e)}"}), 500
 

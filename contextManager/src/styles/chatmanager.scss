@@ -4,21 +4,23 @@ $interactive-color: #84BB2E;
 
 .chat-page {
     display: flex;
-    align-items: left;
+    align-items: center;
     justify-content: center;
-    width: 90vw;
+    width: 95vw;
+    gap: 2vw;
+    margin: 0 auto;
 }
 
 .chat-container {
-    width: 60%;
+    width: 50vw;
     height: 90vh;
     margin: 0 auto;
-    padding: 1rem;
     font-family: monospace, sans-serif;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 2vh;
     box-sizing: border-box;
+    
 }
 
 .chat-box {
@@ -99,13 +101,12 @@ $interactive-color: #84BB2E;
 }
 
 .context-viewer {
-    width: 40%;
+    width: 50vw;
     border: 2px solid $accent-color;
     box-sizing: border-box;
     height: 90vh;
     border-radius: 8px;
     overflow: hidden;
-
     display: flex;        
     flex-direction: column;  
 }
