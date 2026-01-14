@@ -28,7 +28,6 @@ chat with user selected context
 
 ![view chat log](contextManager/public/workspace/demo4.png)
 
-view chat log
 ---
 
 ## Install Dependencies
