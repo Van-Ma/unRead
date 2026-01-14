@@ -8,9 +8,10 @@ import './styles/chatmanager.scss';
 import './styles/contextmanager.scss';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState("chat");     
-  const [folders, setFolders] = useState([]);         
-  const [activeFolderId, setActiveFolderId] = useState(null); 
+  const [activeTab, setActiveTab] = useState("chat");
+  const [folders, setFolders] = useState([]);
+  const [activeFolderId, setActiveFolderId] = useState(null);
+  const [chatLogs, setChatLogs] = useState([]);
 
   return (
     <div className="app-container">
@@ -35,9 +36,10 @@ export default function App() {
           <FileManager
             folders={folders}
             setFolders={setFolders}
-            activeTab={activeTab}
             activeFolderId={activeFolderId}
-            setActiveFolderId={setActiveFolderId} 
+            setActiveFolderId={setActiveFolderId}
+            chatLogs={chatLogs}
+            setChatLogs={setChatLogs} 
           />
         </div>
 
@@ -46,10 +48,11 @@ export default function App() {
           <ChatManager
             folders={folders}
             setFolders={setFolders}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}          
+            setActiveTab={setActiveTab}
             activeFolderId={activeFolderId}
-            setActiveFolderId={setActiveFolderId} 
+            setActiveFolderId={setActiveFolderId}
+            chatLogs={chatLogs}
+            setChatLogs={setChatLogs} 
           />
         </div>
       </div>

@@ -5,13 +5,88 @@ export default function FileManager({
   folders,
   setFolders,
   activeFolderId,
-  setActiveFolderId
+  setActiveFolderId,
+  chatLogs,
+  setChatLogs
 }) {
   const [files, setFiles] = useState([]);
   const [activeFile, setActiveFile] = useState(null);
   const [activeTool, setActiveTool] = useState(null);
   const [contextName, setContextName] = useState("");
   const [selectedContexts, setSelectedContexts] = useState([]);
+
+  const [sessionId, setSessionId] = useState(Date.now().toString());
+  const [isChatLogOpen, setIsChatLogOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [chatLog, setChatLog] = useState([]);
+
+  // toggle chat modal
+  const toggleChatLogModal = () => setIsChatLogOpen(prev => !prev);
+
+  // send message to backend
+  const sendMessage = async (message, endSession = false) => {
+    if (!message.trim() && !endSession) return;
+    setLoading(true);
+
+    try {
+      const folder = folders.find(f => f.id === activeFolderId);
+      const folderName = folder ? folder.name : "No Context";
+      const folderId = folder ? folder.id : null;
+
+      const res = await fetch("http://localhost:5000/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id: sessionId,
+          messages: [
+            ...chatLog.map(m => ({ role: m.role.toLowerCase(), content: m.content })),
+            ...(endSession ? [] : [{ role: "user", content: message }])
+          ],
+          end_session: endSession
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!endSession) {
+        // Add new messages with folder info
+        const newMessages = [
+          { role: "user", content: message, folderId, folderName },
+          ...(data.chat_log?.[data.chat_log.length - 1]?.role.toLowerCase() === "assistant"
+            ? [{ ...data.chat_log[data.chat_log.length - 1], folderId, folderName }]
+            : [])
+        ];
+        setChatLog(prev => [...prev, ...newMessages]);
+      } else {
+        // End session: store full session in chatLogs
+        setChatLogs(prev => [
+          ...prev,
+          {
+            sessionId,
+            folderId,
+            folderName,
+            messages: [...chatLog, ...data.chat_log.map(msg => ({ ...msg, folderId, folderName }))]
+          }
+        ]);
+        setChatLog([]);
+        setSessionId(Date.now().toString());
+      }
+    } catch (err) {
+      console.error("Error sending message:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // manually start new session
+  const startNewSession = () => {
+    if (chatLog.length > 0) {
+      sendMessage("", true);
+    } else {
+      setSessionId(Date.now().toString());
+      setChatLog([]);
+    }
+  };
 
   // sync active folder
   useEffect(() => {
@@ -61,8 +136,6 @@ export default function FileManager({
 
     setSelectedContexts(prev => {
       const newContexts = [...prev, text];
-
-      // update when text added
       if (activeFolderId !== null) {
         setFolders(foldersPrev =>
           foldersPrev.map(f =>
@@ -70,7 +143,6 @@ export default function FileManager({
           )
         );
       }
-
       return newContexts;
     });
 
@@ -107,8 +179,6 @@ export default function FileManager({
   const removeContextSnippet = (indexToRemove) => {
     setSelectedContexts(prev => {
       const newContexts = prev.filter((_, idx) => idx !== indexToRemove);
-
-      // update when removed
       if (activeFolderId !== null) {
         setFolders(foldersPrev =>
           foldersPrev.map(f =>
@@ -116,7 +186,6 @@ export default function FileManager({
           )
         );
       }
-
       return newContexts;
     });
   };
@@ -129,7 +198,6 @@ export default function FileManager({
       filePath: activeFile || null,
       isPlaceholder: true
     };
-
     setFolders(prev => [...prev, newFolder]);
     setActiveFolderId(newFolder.id);
     setSelectedContexts([]);
@@ -137,39 +205,36 @@ export default function FileManager({
     setActiveTool(null);
   };
 
-const createFolder = () => {
-  if (activeFolderId) {
-    setFolders(prev =>
-      prev.map(f =>
-        f.id === activeFolderId
-          ? {
+  const createFolder = () => {
+    if (activeFolderId) {
+      setFolders(prev =>
+        prev.map(f =>
+          f.id === activeFolderId
+            ? {
               ...f,
               name: contextName.trim() || "New",
               snippets: selectedContexts,
               filePath: activeFile || null,
               isPlaceholder: false
             }
-          : f
-      )
-    );
-  } else {
-    const newFolder = {
-      id: Date.now(),
-      name: contextName.trim() || "New",
-      snippets: selectedContexts,
-      filePath: activeFile || null,
-      isPlaceholder: false
-    };
-    setFolders(prev => [...prev, newFolder]);
-    setActiveFolderId(newFolder.id);
-  }
+            : f
+        )
+      );
+    } else {
+      const newFolder = {
+        id: Date.now(),
+        name: contextName.trim() || "New",
+        snippets: selectedContexts,
+        filePath: activeFile || null,
+        isPlaceholder: false
+      };
+      setFolders(prev => [...prev, newFolder]);
+      setActiveFolderId(newFolder.id);
+    }
 
-  setContextName("");
-  setSelectedContexts([]);
-};
-
-
-
+    setContextName("");
+    setSelectedContexts([]);
+  };
 
   const handleContextSubmit = (e) => {
     if (e.key === "Enter") createFolder();
@@ -212,7 +277,6 @@ const createFolder = () => {
     }
   };
 
-  // tool selection
   const toggleTool = (toolName) => {
     setActiveTool(prev => prev === toolName ? null : toolName);
   };
@@ -228,7 +292,7 @@ const createFolder = () => {
             <button onClick={handleAddFile}>
               <img src="/workspace/upload2.png" alt="Add File" />
             </button>
-            <span className="tooltip-text">Upload a file</span>
+            <span className="tooltip-text">upload file</span>
           </div>
 
           <div className="tooltip">
@@ -238,20 +302,18 @@ const createFolder = () => {
             >
               <img src="/workspace/highlighter.png" alt="Highlight" />
             </button>
-            <span className="tooltip-text">Highlight selected text</span>
+            <span className="tooltip-text">select context</span>
           </div>
 
           <div className="tooltip">
             <button
-              className={activeTool === "edit" ? "active-tool" : ""}
-              onClick={() => toggleTool("edit")}
+              className={isChatLogOpen ? "active-tool" : ""}
+              onClick={toggleChatLogModal}
             >
-              <img src="/workspace/read.png" alt="Context" />
+              <img src="/workspace/read.png" alt="Sources" />
             </button>
-            <span className="tooltip-text">Edit context</span>
+            <span className="tooltip-text">show chat log</span>
           </div>
-
-
         </div>
 
         {/* tabs */}
@@ -305,7 +367,6 @@ const createFolder = () => {
                 value={contextName}
                 onChange={e => setContextName(e.target.value)}
                 onBlur={() => {
-                  // Update folder name live while typing
                   if (activeFolderId !== null) {
                     setFolders(prev =>
                       prev.map(f =>
@@ -314,20 +375,12 @@ const createFolder = () => {
                     );
                   }
                 }}
-                onKeyDown={handleContextSubmit} // handles Enter key
+                onKeyDown={handleContextSubmit}
               />
-              <button
-                onClick={() => {
-                  if (activeFolderId !== null) {
-                    // finalize the placeholder folder
-                    createFolder();
-                  }
-                }}
-              >
+              <button onClick={() => activeFolderId && createFolder()}>
                 <img src="/workspace/folder.png" alt="context" />
               </button>
             </div>
-
 
             <div className="selected-text">
               {selectedContexts.length === 0 ? (
@@ -344,6 +397,51 @@ const createFolder = () => {
           </div>
         </div>
       </div>
+
+      {/* Chat Log Modal */}
+      {isChatLogOpen && (
+        <div className="modal-overlay" onClick={toggleChatLogModal}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            {chatLogs.length === 0 ? (
+              <p className="empty-chat">No chat history yet.</p>
+            ) : (
+              chatLogs.map((session, i) => {
+                const filteredMessages = session.messages.filter(
+                  msg => msg.role.toLowerCase() !== "system"
+                );
+
+                return (
+                  <div key={i} className="chat-session">
+                    <h4>Session {i + 1}</h4>
+                    <span id="folder-log">Context: {session.folderName || "Empty"}</span>
+                    {(() => {
+                      let userCount = 0;
+                      return filteredMessages.map((msg, idx) => {
+                        if (msg.role.toLowerCase() === "user") userCount++;
+                        return (
+                          <div key={idx} className="chat-turn">
+                            <div className="message-header">
+                              <span className="message-number">
+                                {msg.role.toLowerCase() === "user" ? `${userCount}. ` : ""}
+                              </span>
+                              <span className="message-role">{msg.role}:</span>
+                            </div>
+                            <div className="message-content">{msg.content}</div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                );
+
+
+              })
+            )}
+
+            <button className="close-modal" onClick={toggleChatLogModal}>×</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

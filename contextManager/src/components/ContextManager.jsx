@@ -9,9 +9,9 @@ export default function ContextManager({
 }) {
   const className = activeTab === "chat" ? "chat-grid" : "folder-grid";
 
-  // Handle folder click
+  // handle folder click
   const handleFolderClick = (folder, e) => {
-    e.stopPropagation(); // Prevent grid click from firing
+    e.stopPropagation(); 
     if (!onFolderClick) return;
 
     if (folder.id === activeFolderId) {
@@ -21,7 +21,7 @@ export default function ContextManager({
     }
   };
 
-  // Handle click on the grid background
+  // handle click on the grid background
   const handleGridClick = () => {
     if (onFolderClick) onFolderClick(null, null, null);
   };
