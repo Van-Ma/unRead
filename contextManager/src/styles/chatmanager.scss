@@ -1,38 +1,29 @@
-$primary-color: #003051;
-$accent-color: #20B4AE;
-$interactive-color: #84BB2E;
 
 .chat-page {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    @include flex-center;
     width: 95vw;
     gap: 2vw;
     margin: 0 auto;
 }
 
 .chat-container {
+    display: flex;
+    flex-direction: column;
     width: 50vw;
     height: 90vh;
     margin: 0 auto;
-    font-family: monospace, sans-serif;
-    display: flex;
-    flex-direction: column;
     gap: 2vh;
-    box-sizing: border-box;
-    
 }
 
 .chat-box {
+    @include container-style;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
     padding: 2rem;
     border-radius: 8px;
-    background: #080c17;
     height: 60vh;
     overflow-y: auto;
-    box-sizing: border-box;
 }
 
 .message {
@@ -63,6 +54,7 @@ $interactive-color: #84BB2E;
     border: 1px solid #ccc;
     font-size: 1rem;
     height: 20vh;
+    box-sizing: border-box;
 }
 
 .chat-button {
@@ -87,50 +79,32 @@ $interactive-color: #84BB2E;
 
 
 .chat-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
-    gap: 20px;
-    background: #080c17;
-    box-sizing: border-box;
-    padding: 1.5rem;
+    @include grid;
+    @include container-style;
     height: 30vh;
-    overflow-y: auto;
-    border-radius: 8px 8px 0px 0px;
-    border-bottom: 2px solid $accent-color;
-    
 }
 
 .context-viewer {
+    display: flex;
+    flex-direction: column;
     width: 50vw;
-    border: 2px solid $accent-color;
-    box-sizing: border-box;
     height: 90vh;
-    border-radius: 8px;
     overflow: hidden;
-    display: flex;        
-    flex-direction: column;  
 }
 
 .selected-context {
-    font-size: 0.8rem;
-    margin-top: 0.5rem;    
-    flex: 1;                
-    overflow-y: auto;
-    border-top: 2px solid $accent-color;
-    background: #080c17;
-    padding: 1rem;       
+    @include container-style;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;       
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    gap: 0.5rem;
 }
 
 
 .chat-context {
-    position: relative;
-    padding: 0.8rem 1rem;
-    background-color: rgb(36, 36, 36);
-    border-radius: 4px;    
-    overflow-wrap: break-word;
-    margin: 0;             
+ @include context-bubble;
 }
-

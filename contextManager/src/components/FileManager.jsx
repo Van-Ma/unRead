@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import ContextManager from "./ContextManager";
-import '../styles/filemanager.scss';
 
 export default function FileManager({
   folders,
@@ -123,28 +122,54 @@ export default function FileManager({
   };
 
   const handleAddContext = () => {
-    setActiveFolderId(null);
+    const newFolder = {
+      id: Date.now(),
+      name: "New",
+      snippets: [],
+      filePath: activeFile || null,
+      isPlaceholder: true
+    };
+
+    setFolders(prev => [...prev, newFolder]);
+    setActiveFolderId(newFolder.id);
     setSelectedContexts([]);
     setContextName("");
     setActiveTool(null);
   };
 
-  // folder 
-  const createFolder = () => {
-    if (!contextName.trim() || selectedContexts.length === 0 || !activeFile) return;
-
+const createFolder = () => {
+  if (activeFolderId) {
+    setFolders(prev =>
+      prev.map(f =>
+        f.id === activeFolderId
+          ? {
+              ...f,
+              name: contextName.trim() || "New",
+              snippets: selectedContexts,
+              filePath: activeFile || null,
+              isPlaceholder: false
+            }
+          : f
+      )
+    );
+  } else {
     const newFolder = {
       id: Date.now(),
-      name: contextName.trim(),
+      name: contextName.trim() || "New",
       snippets: selectedContexts,
-      filePath: activeFile
+      filePath: activeFile || null,
+      isPlaceholder: false
     };
-
     setFolders(prev => [...prev, newFolder]);
-    setContextName("");
-    setSelectedContexts([]);
     setActiveFolderId(newFolder.id);
-  };
+  }
+
+  setContextName("");
+  setSelectedContexts([]);
+};
+
+
+
 
   const handleContextSubmit = (e) => {
     if (e.key === "Enter") createFolder();
@@ -199,21 +224,34 @@ export default function FileManager({
       <div className="file-manager">
         {/* toolbar */}
         <div className="file-toolbar">
-          <button onClick={handleAddFile}>
-            <img src="/workspace/addfile2.png" alt="Add File" />
-          </button>
-          <button
-            className={activeTool === "highlight" ? "active-tool" : ""}
-            onClick={() => toggleTool("highlight")}
-          >
-            <img src="/workspace/highlighter.png" alt="Highlight" />
-          </button>
-          <button
-            className={activeTool === "edit" ? "active-tool" : ""}
-            onClick={() => toggleTool("edit")}
-          >
-            <img src="/workspace/read.png" alt="context" />
-          </button>
+          <div className="tooltip">
+            <button onClick={handleAddFile}>
+              <img src="/workspace/upload2.png" alt="Add File" />
+            </button>
+            <span className="tooltip-text">Upload a file</span>
+          </div>
+
+          <div className="tooltip">
+            <button
+              className={activeTool === "highlight" ? "active-tool" : ""}
+              onClick={() => toggleTool("highlight")}
+            >
+              <img src="/workspace/highlighter.png" alt="Highlight" />
+            </button>
+            <span className="tooltip-text">Highlight selected text</span>
+          </div>
+
+          <div className="tooltip">
+            <button
+              className={activeTool === "edit" ? "active-tool" : ""}
+              onClick={() => toggleTool("edit")}
+            >
+              <img src="/workspace/read.png" alt="Context" />
+            </button>
+            <span className="tooltip-text">Edit context</span>
+          </div>
+
+
         </div>
 
         {/* tabs */}
@@ -241,7 +279,7 @@ export default function FileManager({
           {activeFileContent ? (
             <p>{highlightText(activeFileContent.content)}</p>
           ) : (
-            <p className="empty-editor">No file selected.</p>
+            <p className="empty-editor">Upload a file.</p>
           )}
         </div>
       </div>
@@ -267,6 +305,7 @@ export default function FileManager({
                 value={contextName}
                 onChange={e => setContextName(e.target.value)}
                 onBlur={() => {
+                  // Update folder name live while typing
                   if (activeFolderId !== null) {
                     setFolders(prev =>
                       prev.map(f =>
@@ -275,12 +314,20 @@ export default function FileManager({
                     );
                   }
                 }}
-                onKeyDown={handleContextSubmit}
+                onKeyDown={handleContextSubmit} // handles Enter key
               />
-              <button onClick={() => { if (!activeFolderId) createFolder(); }}>
+              <button
+                onClick={() => {
+                  if (activeFolderId !== null) {
+                    // finalize the placeholder folder
+                    createFolder();
+                  }
+                }}
+              >
                 <img src="/workspace/folder.png" alt="context" />
               </button>
             </div>
+
 
             <div className="selected-text">
               {selectedContexts.length === 0 ? (

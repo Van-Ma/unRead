@@ -1,7 +1,11 @@
 import { useState } from "react";
 import ChatManager from "./components/ChatManager";
 import FileManager from "./components/FileManager";
+
 import './styles/App.scss';
+import './styles/filemanager.scss';
+import './styles/chatmanager.scss';
+import './styles/contextmanager.scss';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("chat");     

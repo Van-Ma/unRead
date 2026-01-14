@@ -1,4 +1,4 @@
-export default function ContextManager({
+export default function ContextManager({ 
   folders,
   activeTab,
   onFolderClick,
@@ -9,24 +9,31 @@ export default function ContextManager({
 }) {
   const className = activeTab === "chat" ? "chat-grid" : "folder-grid";
 
-  const handleClick = (folder) => {
-  if (!onFolderClick) return;
+  // Handle folder click
+  const handleFolderClick = (folder, e) => {
+    e.stopPropagation(); // Prevent grid click from firing
+    if (!onFolderClick) return;
 
-  if (folder.id === activeFolderId) {
-    onFolderClick(null, null, null);
-  } else {
-    onFolderClick(folder.snippets, folder.id, folder.filePath);
-  }
-};
+    if (folder.id === activeFolderId) {
+      onFolderClick(null, null, null);
+    } else {
+      onFolderClick(folder.snippets, folder.id, folder.filePath);
+    }
+  };
+
+  // Handle click on the grid background
+  const handleGridClick = () => {
+    if (onFolderClick) onFolderClick(null, null, null);
+  };
 
   return (
     <>
-      <div className={className}>
+      <div className={className} onClick={handleGridClick}>
         {folders.map((folder) => (
           <div key={folder.id} className="folder-wrapper">
             <div
               className={`folder ${folder.id === activeFolderId ? "active-folder" : ""}`}
-              onClick={() => handleClick(folder)}
+              onClick={(e) => handleFolderClick(folder, e)}
             >
               <img src="/workspace/folder.png" alt="folder" />
               <span className="folder-name">{folder.name}</span>

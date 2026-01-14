@@ -1,0 +1,169 @@
+.context-creation {
+  height: auto;
+  width: 50%;
+  border-radius: 8px;
+  box-sizing: border-box;
+  overflow-y: hidden;
+}
+
+.context-manager {
+  width: 100%;
+  padding: 0px;
+  box-sizing: border-box;
+  height: 90vh;
+}
+
+.context-content {
+  @include container-style;
+  margin-top: 1.5vh;
+  height: 50vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: hidden;
+}
+
+// input/folder name box
+.context-directory {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: 7vh;
+  padding: 20px 3vw;
+  box-sizing: border-box;
+  background-color: #242424;
+  border-bottom: 2px solid rgb(76, 76, 76);
+
+  input {
+    flex: 1;
+    height: 4vh;
+    padding: 12px;
+    padding-left: 10px;
+    box-sizing: border-box;
+    font-family: monospace;
+  }
+
+  button {
+    flex: 0 0 48px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    padding: 0;
+
+    img {
+      height: 100%;
+      max-height: 4vh;
+      min-height: 30px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+    }
+  }
+}
+
+.context-snippet {
+  @include text;
+  position: relative;
+  padding: 1rem 2rem;
+  background-color: rgb(36, 36, 36);
+  border-radius: 4px;
+  margin: 2vh 5px;
+
+  span {
+    flex: 1;
+  }
+
+  .close-snippet {
+    position: absolute;
+    top: 0px;
+    right: 6px;
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    color: $interactive-color;
+  }
+}
+
+.selected-text {
+  @include text;
+  padding: 0 1.5rem;
+}
+
+// folder grid 
+.folder-grid {
+  @include grid;
+  @include container-style;
+}
+
+.folder-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  position: relative;
+}
+
+.folder {
+  @include flex-center;
+  flex-direction: column;
+  width: 60px;
+  height: 60px;
+  padding: 5px;
+  cursor: pointer;
+  border-radius: 5px;
+  background-color: $primary-color;
+  text-align: center;
+  box-sizing: border-box;
+
+  img {
+    width: 25px;
+    height: 25px;
+    margin-bottom: 5px;
+  }
+
+  .folder-name {
+    font-size: 0.7rem;
+    color: white;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    width: 100%;
+  }
+}
+
+// selected folder
+.active-folder {
+  border: 2px solid #DE2E35;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+// folder actions
+.folder-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0px;
+  margin-top: 10px;
+}
+
+.folder-controls-btn {
+  @include flex-center;
+  background-color: $interactive-color;
+  color: black;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 25px;
+  font-size: 0.7rem;
+  margin-right: 10px;
+  cursor: pointer;
+}

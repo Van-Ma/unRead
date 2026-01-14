@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import '../styles/chatmanager.scss';
 import ContextManager from './ContextManager';
 
 export default function ChatManager({
