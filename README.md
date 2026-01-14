@@ -18,9 +18,9 @@ It allows users to highlight text from files, organize it into context folders, 
 ---
 
 ## Preview Images
-![upload, highlight text, and create context groups](public/workspace/demo1.png)
-![chat with user selected context](public/workspace/demo2.png)
-![view chat log](public/workspace/demo4.png)
+![upload, highlight text, and create context groups](contextManager/public/workspace/demo1.png)
+![chat with user selected context](contextManager/public/workspace/demo1.png)
+![view chat log](contextManager/public/workspace/demo1.png)
 
 ---
 
