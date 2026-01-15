@@ -1,4 +1,4 @@
-# Context Manager
+# unRead
 A hybrid **Electron + React** desktop application where users **select and organize their own context** for AI-assisted chat.
 It allows users to highlight text from files, organize it into context folders, and chat with an AI model that answers based solely on the selected context.
 
