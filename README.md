@@ -39,6 +39,7 @@ chat with user selected context
 - api token from HuggingFace
 
 ```bash
+cd contextManager
 npm install
 ```
 ```bash
@@ -59,6 +60,20 @@ npm run dev
 ```bash
 npm run electron
 ```
+
+**Backend config:** set `HF_API_TOKEN` (env var or a `.env` file next to `app.py`). The HuggingFace account needs Inference Provider credits.
+To use a free local model instead, install [Ollama](https://ollama.com), run `ollama pull llama3.2:1b`, then start the backend with:
+```powershell
+$env:LLM_BASE_URL="http://localhost:11434/v1"; $env:LLM_MODEL="llama3.2:1b"; python app.py
+```
+
+**Chat with the backend in the terminal (no GUI):** with `app.py` running,
+```bash
+python chat_cli.py            # plain chat
+python chat_cli.py notes.txt  # answer only from the contents of notes.txt
+```
+
+**Note:** if `npm run electron` fails with `does not provide an export named 'BrowserWindow'`, the shell has `ELECTRON_RUN_AS_NODE=1` set (VS Code does this). Unset it or use a regular terminal.
 
 ## Usage
 **File Manager Tab**

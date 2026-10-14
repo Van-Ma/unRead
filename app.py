@@ -9,7 +9,15 @@ app = Flask(__name__)
 CORS(app)
 
 HF_API_TOKEN = os.getenv("HF_API_TOKEN")
-client = InferenceClient(model="meta-llama/Meta-Llama-3-8B-Instruct", token=HF_API_TOKEN)
+# set LLM_BASE_URL to use any OpenAI-compatible server instead, e.g. local Ollama:
+#   LLM_BASE_URL=http://localhost:11434/v1  LLM_MODEL=llama3.2:1b
+LLM_BASE_URL = os.getenv("LLM_BASE_URL")
+LLM_MODEL = os.getenv("LLM_MODEL", "meta-llama/Llama-3.1-8B-Instruct")
+
+if LLM_BASE_URL:
+    client = InferenceClient(base_url=LLM_BASE_URL, api_key="unused")
+else:
+    client = InferenceClient(model=LLM_MODEL, token=HF_API_TOKEN)
 
 # temporary in-memory storage of sessions
 chat_sessions = {}
@@ -29,7 +37,7 @@ def chat():
     reply_content = ""
     if messages and not end_session:
         try:
-            result = client.chat_completion(messages=messages, max_tokens=200, temperature=0.7)
+            result = client.chat_completion(messages=messages, model=LLM_MODEL, max_tokens=200, temperature=0.7)
             reply_content = result.choices[0].message.content.strip()
         except Exception as e:
             reply_content = f"Error: {str(e)}"
