@@ -1,100 +1,65 @@
 # unRead
-A hybrid **Electron + React** desktop application where users **select and organize their own context** for AI-assisted chat.
-It allows users to highlight text from files, organize it into context folders, and chat with an AI model that answers based solely on the selected context.
+A desktop AI chatbot that handles your data and answers the way *you* want.
 
----
+Take control of every step of your chat: context, model, and answers.
 
-## Features
+- **Macro & micro context control:** Choose files, highlight specific sentences, and organize work into folders.
+- **Context editing:** Remove context you no longer want, and it's gone from the very next answer. No looping AI chats!
+- **Local by default:** Models run locally through Ollama, so your chats never leave your machine. No tracking. Cloud models are optional.
+- **Extensible:** LangGraph backend. Easily integrate into other components and workflows.
 
-- Multi-tab interface: **File Manager** and **Chat**
-- Highlight text in files and save snippets as context
-- Organize snippets into named folders 
-- Chat with AI using only selected context
-- Add, edit, and delete context folders
-- Supports .txt and .docx files (basic support for .doc) 
-- Electron desktop application
-- View chat log 
-  
----
+We're extending features such as RAG, the vector store, OAuth, and more.
 
-## Preview Images
 ![upload, highlight text, and create context groups](contextManager/public/workspace/demo1.png)
-
-upload, highlight text, and create context groups
-
 ![chat with user selected context](contextManager/public/workspace/demo2.png)
 
-chat with user selected context
-
-![view chat log](contextManager/public/workspace/demo4.png)
-
----
-
-## Install Dependencies
-**Prerequisites:**
-
-- Node.js >= 20
-- npm or yarn
-- Python >= 3.10 (for backend API)
-- api token from HuggingFace
-
+## Setup (once)
+Install [Node.js 20+](https://nodejs.org), [Python 3.10+](https://python.org), [Docker Desktop](https://www.docker.com/products/docker-desktop/) and [Ollama](https://ollama.com), then from the repo root:
 ```bash
-cd contextManager
-npm install
+ollama pull llama3.2:1b
+pip install -r requirements.txt
+cd contextManager && npm install
 ```
+
+## Run
+With Docker Desktop open, run each in its own terminal from the repo root:
 ```bash
-pip install flask flask-cors python-dotenv huggingface-hub
+docker compose up -d                      # database
+python app.py                             # backend
+cd contextManager && npm run dev          # frontend
+cd contextManager && npm run electron     # desktop window
 ```
 
-**Run Development Server:**
-1. Start backend:
+Chat in the terminal instead of the GUI (backend must be running):
 ```bash
-python app.py
+python chat_cli.py                    # plain chat
+python chat_cli.py notes.pdf --rag    # chat with a file
 ```
 
-2. Start Vite server:
-```bash
-npm run dev
-```
-3. Start Electron app: (must be running at the same time as vite server)
-```bash
-npm run electron
-```
+Run tests: `pytest tests`
 
-**Backend config:** set `HF_API_TOKEN` (env var or a `.env` file next to `app.py`). The HuggingFace account needs Inference Provider credits.
-To use a free local model instead, install [Ollama](https://ollama.com), run `ollama pull llama3.2:1b`, then start the backend with:
-```powershell
-$env:LLM_BASE_URL="http://localhost:11434/v1"; $env:LLM_MODEL="llama3.2:1b"; python app.py
-```
+**Troubleshooting (Windows)**
+- `npm` blocked by execution policy: use `npm.cmd`.
+- Electron error `does not provide an export named 'BrowserWindow'`: run `Remove-Item Env:ELECTRON_RUN_AS_NODE` first (VS Code terminals set it).
 
-**Chat with the backend in the terminal (no GUI):** with `app.py` running,
-```bash
-python chat_cli.py            # plain chat
-python chat_cli.py notes.txt  # answer only from the contents of notes.txt
-```
+## Configuration
+Optional: copy `.env.example` to `.env`. It switches the model provider (e.g. HuggingFace instead of Ollama), the database URL, and Google login credentials.
 
-**Note:** if `npm run electron` fails with `does not provide an export named 'BrowserWindow'`, the shell has `ELECTRON_RUN_AS_NODE=1` set (VS Code does this). Unset it or use a regular terminal.
+## Features
+- Highlight text in .txt, .docx, .pdf and .xlsx files and save snippets into context folders
+- Attach whole files to a folder
+- **Context** mode sends the whole folder to the model; **RAG** mode retrieves only relevant passages and cites sources
+- Folders, files and chat history saved in PostgreSQL (pgvector for embeddings)
+- Switch models at runtime (Ollama or any OpenAI-compatible API)
+- Chat log of past sessions
+- Google login skeleton (`backend/auth.py`)
 
-## Usage
-**File Manager Tab**
+**Stack:** React, Vite, Electron, Flask, LangChain, LangGraph, PostgreSQL + pgvector, fastembed, Ollama
 
-- Add .txt or .docx files
-- Highlight text to create context snippets
-- Save snippets into named context folders
-- Edit or delete folders
+**Code:** `backend/graph.py` (LangGraph pipeline), `backend/rag.py` (parsing, embeddings, vector store), `backend/api.py` (HTTP routes), `sql/schema.sql` (tables).
 
-**Chat Tab**
-- Select a context folder
-- Ask questions based only on the selected context
-- Start a new chat session anytime
-
-## Technologies 
-- React
-- Vite
-- Electron
-- SCSS
-- Python
-- Flask
-- HuggingFace Inference API
-
-
+## Planned
+- Finish auth: login screen, token auth for the desktop/CLI clients, per-user data
+- More LangGraph nodes: query rewriting, tool use, web search
+- Streaming responses
+- Containerize the backend and run multiple instances behind a load balancer

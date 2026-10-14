@@ -107,3 +107,28 @@
 .chat-context {
     @include context-bubble;
 }
+.chat-options {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.8rem;
+
+    select {
+        @include container-style;
+        color: inherit;
+        padding: 0.3rem;
+        font-family: inherit;
+    }
+}
+
+.sources {
+    margin-top: 0.3rem;
+    font-size: 0.7rem;
+    opacity: 0.7;
+}
+
+.attached-file {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}

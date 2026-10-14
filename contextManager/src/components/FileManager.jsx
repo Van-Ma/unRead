@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
 import ContextManager from "./ContextManager";
+import { api } from "../api";
 
 export default function FileManager({
   folders,
   setFolders,
   activeFolderId,
   setActiveFolderId,
-  chatLogs,
-  setChatLogs
 }) {
   const [files, setFiles] = useState([]);
   const [activeFile, setActiveFile] = useState(null);
@@ -15,77 +14,13 @@ export default function FileManager({
   const [contextName, setContextName] = useState("");
   const [selectedContexts, setSelectedContexts] = useState([]);
 
-  const [sessionId, setSessionId] = useState(Date.now().toString());
   const [isChatLogOpen, setIsChatLogOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [chatLog, setChatLog] = useState([]);
+  const [chatLogs, setChatLogs] = useState([]);
 
-  // toggle chat modal
-  const toggleChatLogModal = () => setIsChatLogOpen(prev => !prev);
-
-  // send message to backend
-  const sendMessage = async (message, endSession = false) => {
-    if (!message.trim() && !endSession) return;
-    setLoading(true);
-
-    try {
-      const folder = folders.find(f => f.id === activeFolderId);
-      const folderName = folder ? folder.name : "No Context";
-      const folderId = folder ? folder.id : null;
-
-      const res = await fetch("http://localhost:5000/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          session_id: sessionId,
-          messages: [
-            ...chatLog.map(m => ({ role: m.role.toLowerCase(), content: m.content })),
-            ...(endSession ? [] : [{ role: "user", content: message }])
-          ],
-          end_session: endSession
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!endSession) {
-        // Add new messages with folder info
-        const newMessages = [
-          { role: "user", content: message, folderId, folderName },
-          ...(data.chat_log?.[data.chat_log.length - 1]?.role.toLowerCase() === "assistant"
-            ? [{ ...data.chat_log[data.chat_log.length - 1], folderId, folderName }]
-            : [])
-        ];
-        setChatLog(prev => [...prev, ...newMessages]);
-      } else {
-        // End session: store full session in chatLogs
-        setChatLogs(prev => [
-          ...prev,
-          {
-            sessionId,
-            folderId,
-            folderName,
-            messages: [...chatLog, ...data.chat_log.map(msg => ({ ...msg, folderId, folderName }))]
-          }
-        ]);
-        setChatLog([]);
-        setSessionId(Date.now().toString());
-      }
-    } catch (err) {
-      console.error("Error sending message:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // manually start new session
-  const startNewSession = () => {
-    if (chatLog.length > 0) {
-      sendMessage("", true);
-    } else {
-      setSessionId(Date.now().toString());
-      setChatLog([]);
-    }
+  // chat log modal shows saved chats from the backend
+  const toggleChatLogModal = () => {
+    if (!isChatLogOpen) api("/chats").then(setChatLogs).catch(err => console.error("Loading chats failed:", err));
+    setIsChatLogOpen(prev => !prev);
   };
 
   // sync active folder
@@ -411,9 +346,9 @@ export default function FileManager({
                 );
 
                 return (
-                  <div key={i} className="chat-session">
+                  <div key={session.id} className="chat-session">
                     <h4>Session {i + 1}</h4>
-                    <span id="folder-log">Context: {session.folderName || "Empty"}</span>
+                    <span id="folder-log">Context: {session.folder_name || "Empty"}</span>
                     {(() => {
                       let userCount = 0;
                       return filteredMessages.map((msg, idx) => {

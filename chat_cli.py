@@ -1,72 +1,81 @@
-"""Terminal chat client for the backend. Start `python app.py` first, then run `python chat_cli.py`.
+"""Terminal chat client for the backend. Start `python app.py` first.
 
-Optional: pass a .txt file to use as context, e.g. `python chat_cli.py notes.txt`.
-Commands: /new starts a new session, /quit exits.
+    python chat_cli.py                       plain chat
+    python chat_cli.py notes.pdf a.txt       answer only from these files (sent in full)
+    python chat_cli.py notes.pdf --rag       answer from retrieved passages, with citations
+    python chat_cli.py --model qwen2.5:3b    use a specific model
+
+Commands: /new starts a new chat, /quit exits.
 """
+import argparse
 import json
-import sys
+import os
+import time
+import urllib.error
 import urllib.request
 
-URL = "http://127.0.0.1:5000/chat"
+URL = "http://127.0.0.1:5000"
 
 
-def build_system_prompt(context):
-    prompt = "You are a helpful assistant."
-    if context:
-        prompt = (
-            "You must answer questions using ONLY the context provided below.\n"
-            "If the answer cannot be derived at all from the context, respond with "
-            '"I cannot answer based on the provided context."\n\n'
-            f"Context:\n{context}"
-        )
-    return {"role": "system", "content": prompt}
-
-
-def post(payload):
+def call(method, path, body=None):
     req = urllib.request.Request(
-        URL,
-        data=json.dumps(payload).encode(),
+        URL + path,
+        method=method,
+        data=json.dumps(body).encode() if body is not None else None,
         headers={"Content-Type": "application/json"},
     )
-    with urllib.request.urlopen(req, timeout=120) as res:
-        return json.load(res)
+    try:
+        with urllib.request.urlopen(req, timeout=300) as res:
+            return json.load(res)
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(json.load(e).get("error", e.reason)) from None
 
 
 def main():
-    context = ""
-    if len(sys.argv) > 1:
-        with open(sys.argv[1], encoding="utf-8") as f:
-            context = f.read()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("files", nargs="*")
+    parser.add_argument("--rag", action="store_true")
+    parser.add_argument("--model")
+    args = parser.parse_args()
 
-    system = build_system_prompt(context)
-    history = [system]
-    print(f"Chatting via {URL}. Type /new for a new session, /quit to exit.")
+    folder_id = None
+    if args.files:
+        folder_id = f"cli-{int(time.time())}"
+        call("PUT", f"/folders/{folder_id}", {"name": "CLI", "snippets": []})
+        for path in args.files:
+            call("POST", f"/folders/{folder_id}/files", {"path": os.path.abspath(path)})
 
-    while True:
-        try:
-            text = input("\nYou: ").strip()
-        except (EOFError, KeyboardInterrupt):
-            break
-        if not text:
-            continue
-        if text == "/quit":
-            break
-        if text == "/new":
-            history = [system]
-            print("(new session)")
-            continue
-
-        history.append({"role": "user", "content": text})
-        try:
-            data = post({"messages": history})
-        except Exception as e:
-            print(f"Error connecting to server: {e}")
-            history.pop()
-            continue
-
-        reply = data.get("response") or "No response from model."
-        print(f"AI: {reply}")
-        history.append({"role": "assistant", "content": reply})
+    mode = "rag" if args.rag else "context"
+    chat_id = None
+    print(f"Chatting via {URL} ({mode} mode). Type /new for a new chat, /quit to exit.")
+    try:
+        while True:
+            try:
+                text = input("\nYou: ").strip()
+            except (EOFError, KeyboardInterrupt):
+                break
+            if not text:
+                continue
+            if text == "/quit":
+                break
+            if text == "/new":
+                chat_id = None
+                print("(new chat)")
+                continue
+            try:
+                data = call("POST", "/chat", {
+                    "chat_id": chat_id, "folder_id": folder_id, "message": text, "mode": mode, "model": args.model,
+                })
+            except Exception as e:
+                print(f"Error: {e}")
+                continue
+            chat_id = data["chat_id"]
+            print(f"AI: {data['response']}")
+            if data["sources"]:
+                print(f"    sources: {', '.join(data['sources'])}")
+    finally:
+        if folder_id:
+            call("DELETE", f"/folders/{folder_id}")
 
 
 if __name__ == "__main__":

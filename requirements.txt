@@ -1,0 +1,16 @@
+flask
+flask-cors
+python-dotenv
+authlib
+requests
+psycopg[binary,pool]
+langchain-core
+langchain-openai
+langchain-postgres
+langchain-text-splitters
+langgraph
+langgraph-checkpoint-postgres
+fastembed
+pypdf
+python-docx
+openpyxl
